@@ -7,7 +7,13 @@ import nltk
 from nltk.corpus import stopwords
 from nltk.tokenize import word_tokenize
 from nltk.stem import SnowballStemmer
+import Stemmer
+import spacy
 
+
+# 1. Initialize the stemmer for a specific language
+stemmer = Stemmer.Stemmer('spanish')
+nlp = spacy.load('es_core_news_sm')
 nltk.download('stopwords')
 nltk.download('punkt')
 
@@ -18,7 +24,7 @@ def clean_text(text):
 
     text = str(text).lower()                    # Lowercase
     text = re.sub(r"http(s*)\S+|www\S+|https\S+", "", text)  # Remove URLs
-    text = re.sub(r"#\w+", "", text)            # Remove hashtags first
+    text = re.sub(r"#\w*", "", text)            # Remove hashtags first
     text = re.sub(r"\d+", "", text)             # Remove numbers
     text = text.translate(str.maketrans('', '', string.punctuation))  # Remove punctuation
     text = re.sub(r"\W+", " ", text)            # Remove special chars
@@ -38,10 +44,21 @@ def text_stemming(text):
     stemmed_tokens = [stemmer.stem(word) for word in tokens]
     return ' '.join(stemmed_tokens)
 
+def text_lemmatization(text):
+    doc = nlp(text)
+    lemmatized_tokens = [token.lemma_ for token in doc]
+    return ' '.join(lemmatized_tokens)
+
+def text_stemming_pystemmer(text):
+    tokens = word_tokenize(text)
+    stemmed_tokens = [stemmer.stemWord(word) for word in tokens]
+    return ' '.join(stemmed_tokens)
+
 def text_filtering(text):
     text = clean_text(text)
     text = stopword_remover_nltk(text)
     # text = text_stemming(text)
+    text = text_lemmatization(text)
     return text
 
 def process_csv(input_file, output_file, text_column="tweet_text"):
@@ -56,7 +73,4 @@ def process_csv(input_file, output_file, text_column="tweet_text"):
     print(f"Saved cleaned CSV to: {output_file}")
 
 if __name__ == "__main__":
-    raw_text = "Comida Real o , la clave para estar m?s sana, delgada y feliz #salud #fit2026"
-    print(clean_text(raw_text))
-    
     process_csv("data_train(in).csv", "data_train_cleaned.csv", text_column="tweet_text")
