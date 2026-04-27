@@ -26,6 +26,7 @@ def clean_text(text):
     text = re.sub(r"http(s*)\S+|www\S+|https\S+", "", text)  # Remove URLs
     text = re.sub(r"#\w*", "", text)            # Remove hashtags first
     text = re.sub(r"\d+", "", text)             # Remove numbers
+    text = re.sub(r"@\w*", "", text)            # Remove mentions
     text = text.translate(str.maketrans('', '', string.punctuation))  # Remove punctuation
     text = re.sub(r"\W+", " ", text)            # Remove special chars
     text = re.sub(r"\s+", " ", text).strip()    # Remove extra spaces
