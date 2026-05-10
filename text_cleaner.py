@@ -58,8 +58,8 @@ def text_stemming_pystemmer(text):
 def text_filtering(text):
     text = clean_text(text)
     text = stopword_remover_nltk(text)
-    # text = text_stemming(text)
-    text = text_lemmatization(text)
+    text = text_stemming(text)
+    #text = text_lemmatization(text)
     return text
 
 def process_csv(input_file, output_file, text_column="tweet_text"):
