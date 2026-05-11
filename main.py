@@ -8,6 +8,8 @@ from models.logistic_regression_model import get_model as get_logistic_regressio
 from models.knn_model import get_model as get_knn
 import pandas as pd 
 
+from sklearn.metrics import roc_curve, roc_auc_score
+
 from evaluation import (
     evaluate_model,
     print_metrics,
@@ -15,7 +17,9 @@ from evaluation import (
     plot_confusion_matrix,
     plot_random_forest_feature_importance,
     plot_logistic_regression_coefficients,
-    plot_train_vs_test_accuracy_rf
+    plot_train_vs_test_accuracy_rf,
+    plot_roc_auc,
+    calculate_auc
 )
 
 PLOTS_ACTIVE = False
@@ -232,6 +236,14 @@ def train_and_plot(
         X_test=X_test,
         y_test=y_test
     )
+    results["test_size"] = test_size
+    results["train_size"] = 1 - test_size
+    results["auc"] = calculate_auc(
+        model=model,
+        X_test=X_test,
+        y_test=y_test
+    )
+    
 
     print("\nExperiment Configuration")
     print("-" * 40)
@@ -263,6 +275,14 @@ def train_and_plot(
         # 8. Model-specific plots
         # -----------------------------
         normalized_model_name = model_name.lower()
+        
+        auc_score = plot_roc_auc(
+            model=model,
+            X_test=X_test,
+            y_test=y_test,
+            title=f"ROC Curve - {model_name.upper()} with {target.upper()}"
+        )
+        results["auc"] = auc_score
 
         if normalized_model_name in ["rf", "random_forest", "random forest"]:
             plot_random_forest_feature_importance(

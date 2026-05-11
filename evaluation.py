@@ -116,3 +116,105 @@ def plot_train_vs_test_accuracy_rf(X_train, X_test, y_train, y_test, random_stat
     plt.legend()
     plt.tight_layout()
     plt.show()
+    
+import matplotlib.pyplot as plt
+
+from sklearn.metrics import roc_curve, roc_auc_score
+
+
+def plot_roc_auc(
+    model,
+    X_test,
+    y_test,
+    positive_label="anorexia",
+    title="ROC Curve"
+):
+    """
+    Plots ROC curve and calculates AUC for a binary classification model.
+
+    Parameters
+    ----------
+    model : sklearn model or Pipeline
+        Trained model.
+
+    X_test : pd.DataFrame
+        Test features.
+
+    y_test : pd.Series
+        True labels.
+
+    positive_label : str
+        Label considered as the positive class.
+
+    title : str
+        Plot title.
+    """
+
+    if not hasattr(model, "predict_proba"):
+        raise ValueError("This model does not support predict_proba().")
+
+    # Get probability matrix
+    y_proba = model.predict_proba(X_test)
+
+    # Find the index of the positive class
+    class_labels = list(model.classes_) if hasattr(model, "classes_") else list(model.named_steps["classifier"].classes_)
+
+    if positive_label not in class_labels:
+        raise ValueError(
+            f"Positive label '{positive_label}' not found in model classes: {class_labels}"
+        )
+
+    positive_index = class_labels.index(positive_label)
+
+    # Probability of the positive class
+    y_score = y_proba[:, positive_index]
+
+    # Convert y_test to binary: anorexia = 1, control = 0
+    y_test_binary = (y_test == positive_label).astype(int)
+
+    fpr, tpr, thresholds = roc_curve(y_test_binary, y_score)
+    auc_score = roc_auc_score(y_test_binary, y_score)
+
+    plt.figure(figsize=(8, 6))
+    plt.plot(fpr, tpr, label=f"AUC = {auc_score:.4f}")
+    plt.plot([0, 1], [0, 1], linestyle="--", label="Random classifier")
+
+    plt.title(title)
+    plt.xlabel("False Positive Rate")
+    plt.ylabel("True Positive Rate / Recall")
+    plt.legend()
+    plt.tight_layout()
+    plt.show()
+
+    return auc_score
+
+
+def calculate_auc(model, X_test, y_test, positive_label="anorexia"):
+    """
+    Calculates AUC for binary classification using the probability
+    of the positive class.
+    """
+
+    if not hasattr(model, "predict_proba"):
+        raise ValueError("This model does not support predict_proba().")
+
+    y_proba = model.predict_proba(X_test)
+
+    if hasattr(model, "classes_"):
+        class_labels = list(model.classes_)
+    else:
+        class_labels = list(model.named_steps["classifier"].classes_)
+
+    if positive_label not in class_labels:
+        raise ValueError(
+            f"Positive label '{positive_label}' not found in model classes: {class_labels}"
+        )
+
+    positive_index = class_labels.index(positive_label)
+    y_score = y_proba[:, positive_index]
+
+    y_test_binary = (y_test == positive_label).astype(int)
+
+    auc_score = roc_auc_score(y_test_binary, y_score)
+
+    return auc_score
