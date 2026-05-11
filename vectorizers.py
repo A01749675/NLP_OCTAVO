@@ -1,12 +1,11 @@
 import pandas as pd
 import numpy as np
-
 from sklearn.feature_extraction.text import TfidfVectorizer, CountVectorizer
 from nltk.tokenize import word_tokenize
-
 from gensim.models import Word2Vec
-
 from text_cleaner import text_filtering
+
+
 # ---------------------------------------------------------
 # TF-IDF VECTORIZER
 # ---------------------------------------------------------

@@ -4,6 +4,9 @@ from sklearn.linear_model import LogisticRegression
 
 
 def get_model(random_state=42):
+    """
+        Returns a Logistic Regression model pipeline with standard scaling.
+    """
     return Pipeline([
         ("scaler", StandardScaler()),
         ("classifier", LogisticRegression(

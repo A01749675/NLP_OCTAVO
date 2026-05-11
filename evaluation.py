@@ -2,7 +2,9 @@ import pandas as pd
 import matplotlib.pyplot as plt
 from sklearn import metrics
 from sklearn.metrics import ConfusionMatrixDisplay,confusion_matrix
-
+import matplotlib.pyplot as plt
+from sklearn.metrics import roc_curve, roc_auc_score
+from sklearn.ensemble import RandomForestClassifier
 
 
 def evaluate_model(model, X_test, y_test):
@@ -85,7 +87,6 @@ def plot_logistic_regression_coefficients(model, X, top_n=15):
 
 
 def plot_train_vs_test_accuracy_rf(X_train, X_test, y_train, y_test, random_state=42):
-    from sklearn.ensemble import RandomForestClassifier
 
     n_trees_list = [1, 5, 10, 20, 50, 100, 150, 200]
 
@@ -117,9 +118,7 @@ def plot_train_vs_test_accuracy_rf(X_train, X_test, y_train, y_test, random_stat
     plt.tight_layout()
     plt.show()
     
-import matplotlib.pyplot as plt
 
-from sklearn.metrics import roc_curve, roc_auc_score
 
 
 def plot_roc_auc(
