@@ -184,7 +184,10 @@ def word2vec_vectorize(
     pd.DataFrame
         DataFrame containing Word2Vec features and metadata.
     """
-    with open("word2vecText.txt", "r", encoding="utf-8") as file:
+    
+    WORD_2_VEC_FILE = "word2vecText.txt"
+    
+    with open(WORD_2_VEC_FILE, "r", encoding="utf-8") as file:
             domain_document = file.read()
     # domain_document = text_filtering(domain_document)
     def clean_and_tokenize(text):
@@ -256,6 +259,9 @@ def word2vec_vectorize(
     print(f"Number of Word2Vec dimensions: {vector_size}")
 
     return word2vec_df
+
+
+
 
 def all_vectorize(
     texts,

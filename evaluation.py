@@ -1,8 +1,8 @@
 import pandas as pd
 import matplotlib.pyplot as plt
-
 from sklearn import metrics
 from sklearn.metrics import ConfusionMatrixDisplay,confusion_matrix
+
 
 
 def evaluate_model(model, X_test, y_test):
