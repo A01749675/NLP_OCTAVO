@@ -42,7 +42,7 @@ def clean_text(text):
     text = text.translate(str.maketrans('', '', string.punctuation))  # Remove punctuation
     text = re.sub(r"\W+", " ", text)            # Remove special chars
     text = re.sub(r"\s+", " ", text).strip()    # Remove extra spaces
-
+    text = re.sub(r'[.,\n]','',text)
     return text
 
 def stopword_remover_nltk(text):

@@ -4,8 +4,9 @@ from sklearn.feature_extraction.text import TfidfVectorizer, CountVectorizer
 from nltk.tokenize import word_tokenize
 from gensim.models import Word2Vec
 from text_cleaner import text_filtering
-
-
+import joblib
+from pathlib import Path
+import os
 # ---------------------------------------------------------
 # TF-IDF VECTORIZER
 # ---------------------------------------------------------
@@ -184,79 +185,83 @@ def word2vec_vectorize(
         DataFrame containing Word2Vec features and metadata.
     """
     
-    WORD_2_VEC_FILE = "word2vecText.txt"
+    model_file = "WORD2VEC.model"
     
-    with open(WORD_2_VEC_FILE, "r", encoding="utf-8") as file:
-            domain_document = file.read()
-    # domain_document = text_filtering(domain_document)
+    # 1. Prepare Tokenization helper
     def clean_and_tokenize(text):
+        if not text or pd.isna(text): return []
         text = str(text).lower()
+        # Remove non-alphanumeric but keep spaces
+        text = "".join(c for c in text if c.isalnum() or c.isspace())
+        return word_tokenize(text)
 
-        text = "".join(
-            character for character in text
-            if character.isalnum() or character.isspace()
-        )
-
-        tokens = word_tokenize(text)
-
-        return tokens
-
+    # 2. Tokenize the input tweets
     tweet_tokens = [clean_and_tokenize(text) for text in texts]
 
-    domain_tokens = clean_and_tokenize(domain_document)
+    # 3. Check if model exists or needs training
+    if os.path.exists(model_file):
+        print(f"Loading existing Word2Vec model from {model_file}...")
+        model = Word2Vec.load(model_file)
+    else:
+        print("Training new Word2Vec model with expanded context...")
+        # Load the base domain document (tweets context)
+        try:
+            with open("word2vecText.txt", "r", encoding="utf-8") as f:
+                domain_document = f.read()
+        except FileNotFoundError:
+            domain_document = ""
+            print("Warning: word2vecText.txt not found. Using only tweets for training.")
 
-    training_corpus = tweet_tokens + [domain_tokens]
+        # ADDING THE NEW CONTEXT (The Monologue)
+        # You can also save this to a file and read it, but adding it here 
+        # ensures the model learns these specific semantic relationships.
+        new_monologue = """
+        Hoy desperté sintiendo que mi mente empezó antes que mi cuerpo. 
+        Es extraño vivir así, como si mi cabeza estuviera siempre ocupada 
+        por la comida, el peso, el espejo, la ropa, la imagen y la culpa.
+        ... (Insert full monologue text here) ...
+        """
+        
+        domain_tokens = clean_and_tokenize(domain_document)
+        monologue_tokens = clean_and_tokenize(new_monologue)
 
-    model = Word2Vec(
-        sentences=training_corpus,
-        vector_size=vector_size,
-        window=window,
-        min_count=min_count,
-        sg=1,
-        workers=4,
-        epochs=epochs
-    )
+        # Build training corpus: list of lists
+        # We include tweet tokens, the domain doc as a "sentence", 
+        # and the monologue as a "sentence".
+        training_corpus = tweet_tokens + [domain_tokens] + [monologue_tokens]
+        
+        # Train the model
+        model = Word2Vec(
+            sentences=training_corpus,
+            vector_size=vector_size,
+            window=window,
+            min_count=min_count,
+            sg=1, # Skip-gram is usually better for small datasets with deep context
+            workers=4,
+            epochs=epochs
+        )
+        
+        model.save(model_file)
+        print("Model trained and saved.")
 
+    # 4. Vectorize tweets (Inference)
     def tweet_to_vector(tokens):
-        vectors = []
-
-        for token in tokens:
-            if token in model.wv:
-                vectors.append(model.wv[token])
-
-        if len(vectors) == 0:
+        vectors = [model.wv[token] for token in tokens if token in model.wv]
+        if not vectors:
             return np.zeros(vector_size)
-
         return np.mean(vectors, axis=0)
 
-    tweet_vectors = [
-        tweet_to_vector(tokens)
-        for tokens in tweet_tokens
-    ]
+    tweet_vectors = [tweet_to_vector(tokens) for tokens in tweet_tokens]
 
-    feature_names = [
-        f"word2vec_{index}"
-        for index in range(vector_size)
-    ]
-
-    word2vec_df = pd.DataFrame(
-        tweet_vectors,
-        columns=feature_names
-    )
-
+    # 5. Create DataFrame and Save
+    feature_names = [f"word2vec_{i}" for i in range(vector_size)]
+    word2vec_df = pd.DataFrame(tweet_vectors, columns=feature_names)
+    
     word2vec_df.insert(0, "tweet_text_clean", texts)
-
-    if tweet_ids is not None:
-        word2vec_df.insert(0, "tweet_id", tweet_ids)
-
-    if classes is not None:
-        word2vec_df.insert(0, "class", classes)
+    if tweet_ids is not None: word2vec_df.insert(0, "tweet_id", tweet_ids)
+    if classes is not None: word2vec_df.insert(0, "class", classes)
 
     word2vec_df.to_csv(output_file, index=False, encoding="utf-8")
-
-    print(f"Word2Vec data saved to {output_file}")
-    print(f"Number of Word2Vec dimensions: {vector_size}")
-
     return word2vec_df
 
 
