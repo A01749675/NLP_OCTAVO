@@ -28,6 +28,7 @@ def print_metrics(results):
     print("Recall:", results["recall_macro"])
     print("F1 Score:", results["f1_macro"])
     print("Specificity:", results["specificity"])
+    print("AUC:", results.get("auc", "N/A"))
 
 
 def plot_class_distribution(y):

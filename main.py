@@ -7,6 +7,8 @@ from models.random_forest_model import get_model as get_random_forest
 from models.logistic_regression_model import get_model as get_logistic_regression
 from models.knn_model import get_model as get_knn
 import pandas as pd 
+import joblib
+
 
 from sklearn.metrics import roc_curve, roc_auc_score
 
@@ -85,7 +87,7 @@ def get_test_size(model_name):
     model_name = model_name.lower()
 
     if model_name in ["rf", "random_forest", "random forest"]:
-        return 0.30
+        return 0.20
 
     return 0.20
 
@@ -136,6 +138,8 @@ def test_knn_model(input_file="data_train_cleaned.csv", random_state=42):
     df.to_csv('knn_performance.csv', index=False)
     return performance
 
+def save_model(model,representation,target):
+    joblib.dump(model,representation+'-'+target+'.pkl')
 
 def train_and_plot(
     input_file="data_train_cleaned.csv",
@@ -227,6 +231,9 @@ def train_and_plot(
     # 5. Train model
     # -----------------------------
     model.fit(X_train, y_train)
+    
+    
+    save_model(model,model_name ,target)
 
     # -----------------------------
     # 6. Evaluate model
@@ -368,6 +375,18 @@ def run_experiments():
         },
         {
             "target": "word2vec",
+            "model_name": "knn"
+        },
+        {
+            "target": "tfidf_ngrams",
+            "model_name": "rf"
+        },
+        {
+            "target": "tfidf_ngrams",
+            "model_name": "lr"
+        },
+        {
+            "target": "tfidf_ngrams",
             "model_name": "knn"
         }
     ]
