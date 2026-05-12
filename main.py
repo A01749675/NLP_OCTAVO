@@ -87,7 +87,7 @@ def get_test_size(model_name):
     model_name = model_name.lower()
 
     if model_name in ["rf", "random_forest", "random forest"]:
-        return 0.30
+        return 0.20
 
     return 0.20
 
@@ -375,6 +375,18 @@ def run_experiments():
         },
         {
             "target": "word2vec",
+            "model_name": "knn"
+        },
+        {
+            "target": "tfidf_ngrams",
+            "model_name": "rf"
+        },
+        {
+            "target": "tfidf_ngrams",
+            "model_name": "lr"
+        },
+        {
+            "target": "tfidf_ngrams",
             "model_name": "knn"
         }
     ]
