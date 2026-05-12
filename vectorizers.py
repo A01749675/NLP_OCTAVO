@@ -260,6 +260,58 @@ def word2vec_vectorize(
     return word2vec_df
 
 
+def tfidf_ngram_vectorize(
+    texts,
+    tweet_ids,
+    classes=None,
+    output_file="data_train_tfidf_ngrams.csv",
+    tfidf_ngram_range=(1, 1),
+    count_ngram_range=(3, 3)
+):
+    """
+    Combines TF-IDF and n-grams into one representation.
+    """
+
+    tfidf_df = tfidf_vectorize(
+        texts=texts,
+        tweet_ids=tweet_ids,
+        classes=classes,
+        output_file="temporary_tfidf.csv",
+        ngram_range=tfidf_ngram_range
+    )
+
+    ngram_df = ngram_vectorize(
+        texts=texts,
+        tweet_ids=tweet_ids,
+        classes=classes,
+        output_file="temporary_ngrams.csv",
+        ngram_range=count_ngram_range
+    )
+
+    combined_df = pd.concat(
+        [
+            tfidf_df.drop(columns=["tweet_text_clean", "tweet_id", "class"], errors="ignore"),
+            ngram_df.drop(columns=["tweet_text_clean", "tweet_id", "class"], errors="ignore")
+        ],
+        axis=1
+    )
+
+    combined_df.insert(0, "tweet_text_clean", texts)
+
+    if tweet_ids is not None:
+        combined_df.insert(0, "tweet_id", tweet_ids)
+
+    if classes is not None:
+        combined_df.insert(0, "class", classes)
+
+    combined_df.to_csv(output_file, index=False, encoding="utf-8")
+
+    print(f"Combined TF-IDF + N-gram data saved to {output_file}")
+    print(f"Number of TF-IDF features: {tfidf_df.shape[1] - 3}")
+    print(f"Number of N-gram features: {ngram_df.shape[1] - 3}")
+    print(f"Total features: {combined_df.shape[1] - 3}")
+
+    return combined_df
 
 
 def all_vectorize(
@@ -435,7 +487,17 @@ def process_csv(input_file, target):
                 tfidf_ngram_range=(1, 1),
                 count_ngram_range=(3, 3)
             )
+        case "tfidf_ngrams":
+            file_name = "data_train_tfidf_ngrams.csv"
 
+            tfidf_ngram_vectorize(
+                texts=texts,
+                tweet_ids=tweet_ids,
+                classes=classes,
+                output_file=file_name,
+                tfidf_ngram_range=(1, 1),
+                count_ngram_range=(3, 3)
+            )
         case _:
             raise ValueError(
                 "Invalid target. Use 'tfidf', 'ngrams', 'word2vec', or 'all'."
