@@ -1,0 +1,10 @@
+# Python cache folders
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Ignore all CSV files
+*.csv
+
+# But allow this specific CSV
+!data_train.csv
