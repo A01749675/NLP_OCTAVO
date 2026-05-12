@@ -7,6 +7,8 @@ from models.random_forest_model import get_model as get_random_forest
 from models.logistic_regression_model import get_model as get_logistic_regression
 from models.knn_model import get_model as get_knn
 import pandas as pd 
+import joblib
+
 
 from sklearn.metrics import roc_curve, roc_auc_score
 
@@ -136,6 +138,8 @@ def test_knn_model(input_file="data_train_cleaned.csv", random_state=42):
     df.to_csv('knn_performance.csv', index=False)
     return performance
 
+def save_model(model,representation,target):
+    joblib.dump(model,representation+'-'+target+'.pkl')
 
 def train_and_plot(
     input_file="data_train_cleaned.csv",
@@ -227,6 +231,9 @@ def train_and_plot(
     # 5. Train model
     # -----------------------------
     model.fit(X_train, y_train)
+    
+    
+    save_model(model,model_name ,target)
 
     # -----------------------------
     # 6. Evaluate model

@@ -8,3 +8,4 @@ __pycache__/
 
 # But allow this specific CSV
 !data_train.csv
+*.pkl
