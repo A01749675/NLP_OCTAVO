@@ -1,10 +1,11 @@
 import unittest
-
 import pandas as pd
 import numpy as np
 import nltk
+import os
+import tempfile
 
-from text_cleaner import clean_text, stopword_remover_nltk, text_stemming, text_lemmatization, text_stemming_pystemmer, text_filtering
+from text_cleaner import clean_text, stopword_remover_nltk, text_stemming, text_lemmatization, text_stemming_pystemmer, text_filtering, process_csv
 
 # ---------------------------------------------------------
 # Tests for the clean_text() function
@@ -278,6 +279,66 @@ class TestTextFiltering(unittest.TestCase):
         text = "sal sol mar"
         expected = "sal sol mar"
         self.assertEqual(text_filtering(text), expected)
+
+# ---------------------------------------------------------
+# Tests for the process_csv() function
+# ---------------------------------------------------------
+
+class TestProcessCSV(unittest.TestCase):
+
+    def setUp(self):
+        "This is executed BEFORE each test. It creates a clean temporary environment."
+        self.test_dir = tempfile.TemporaryDirectory()
+        self.input_csv = os.path.join(self.test_dir.name, "input.csv")
+        self.output_csv = os.path.join(self.test_dir.name, "output.csv")
+
+    def tearDown(self):
+        "This is executed AFTER each test. It deletes the temporary files and folder."
+        self.test_dir.cleanup()
+
+    def test_successful_processing(self):
+        """Tests that the file is processed, the clean column is created, and it is saved correctly."""
+        # 1. Create a mock DataFrame and save it as a CSV in the temporary folder
+        df_mock = pd.DataFrame({
+            "id": [1, 2],
+            "tweet_text": [
+                "¡Hola! @JuanDoe, mira los perros en http://test.com",
+                "100 gatos corriendo!!!"
+            ]
+        })
+        df_mock.to_csv(self.input_csv, index=False, encoding="utf-8")
+
+        # 2. Run the function to be tested
+        process_csv(self.input_csv, self.output_csv, text_column="tweet_text")
+
+        # 3. Verify that the output file exists
+        self.assertTrue(os.path.exists(self.output_csv))
+
+        # 4. Read the output file and verify its structure
+        df_result = pd.read_csv(self.output_csv, encoding="utf-8")
+
+        # Check that the new column exists and the rows are maintained
+        self.assertIn("tweet_text_clean", df_result.columns)
+        self.assertEqual(len(df_result), 2)
+
+        # Check that the original column is still there
+        self.assertIn("tweet_text", df_result.columns)
+
+    def test_missing_column_raises_error(self):
+        """Tests that the function raises a ValueError if the specified column does not exist in the CSV."""
+        # 1. Create a CSV without the 'tweet_text' column
+        df_mock = pd.DataFrame({
+            "usuario": ["@user1", "@user2"],
+            "texto_diferente": ["hola", "adiós"]
+        })
+        df_mock.to_csv(self.input_csv, index=False, encoding="utf-8")
+
+        # 2. Verify that a ValueError is raised during processing
+        with self.assertRaises(ValueError) as context:
+            process_csv(self.input_csv, self.output_csv, text_column="tweet_text")
+
+        # 3. Verify that the error message includes the correct information
+        self.assertIn("Column 'tweet_text' not found", str(context.exception))
 
 if __name__ == '__main__':
     unittest.main()
