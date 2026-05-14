@@ -275,6 +275,16 @@ def tfidf_ngram_vectorize(
 ):
     """
     Combines TF-IDF and n-grams into one representation.
+    
+    args:
+        texts (list): List of cleaned tweet texts.
+        tweet_ids (list): List of tweet IDs.
+        classes (list, optional): List of class labels.
+        output_file (str): Name of the output CSV file.
+        tfidf_ngram_range (tuple): Range of n-grams for TF-IDF.
+        count_ngram_range (tuple): Range of n-grams for CountVectorizer.
+    returns:
+        pd.DataFrame: A DataFrame containing the combined TF-IDF and n-gram features along with metadata.
     """
 
     tfidf_df = tfidf_vectorize(
@@ -329,6 +339,15 @@ def all_vectorize(
 ):
     """
     Combines TF-IDF, n-grams, and Word2Vec into one representation.
+    
+        args:
+            texts (list): List of cleaned tweet texts.
+            tweet_ids (list): List of tweet IDs.
+            classes (list, optional): List of class labels.
+            output_file (str): Name of the output CSV file.
+            tfidf_ngram_range (tuple): Range of n-grams
+        returns:
+            pd.DataFrame: A DataFrame containing the combined TF-IDF, n-gram, and Word2Vec features along with metadata.
     """
 
     # -----------------------------

@@ -7,6 +7,14 @@ from sklearn import metrics
 from sklearn.metrics import ConfusionMatrixDisplay
 
 def get_data():
+    """
+    Loads TF-IDF features and class labels from the legacy dataset.
+
+    Returns
+    -------
+    tuple[pandas.DataFrame, pandas.Series]
+        Feature matrix X and label vector y.
+    """
     df_tfidf = pd.read_csv("data_train_tfidf.csv", encoding="utf-8")
     df_cleaned = pd.read_csv("data_train_cleaned.csv", encoding="utf-8")
 
@@ -31,6 +39,13 @@ def get_data():
     return X, y
 
 def train_and_plot():
+    """
+    Trains a random forest on legacy TF-IDF features and displays evaluation plots.
+
+    Returns
+    -------
+    None
+    """
     X, y = get_data()
 
     X_train, X_test, y_train, y_test = train_test_split(

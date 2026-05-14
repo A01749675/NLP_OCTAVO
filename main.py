@@ -93,7 +93,21 @@ def get_test_size(model_name):
 
 
 def test_knn_model(input_file="data_train_cleaned.csv", random_state=42):
+    """
+    Runs KNN experiments over several vectorization representations.
 
+    Parameters
+    ----------
+    input_file : str, optional
+        Path to the cleaned training CSV file. Defaults to "data_train_cleaned.csv".
+    random_state : int, optional
+        Seed for reproducible train/test splits. Defaults to 42.
+
+    Returns
+    -------
+    list[dict]
+        Performance summaries for each KNN configuration and representation.
+    """
     model_name = "knn"
     vectorization_targets = ["tfidf", "ngrams","word2vec", "all"]
     performance = []
@@ -140,8 +154,22 @@ def test_knn_model(input_file="data_train_cleaned.csv", random_state=42):
 
 def save_model(model, model_name, target, feature_columns):
     """
-    Saves the trained model together with the feature columns used during training.
-    This allows validation/test data to be aligned before prediction.
+    Saves the trained model artifact and metadata to disk.
+
+    Parameters
+    ----------
+    model : object
+        Trained machine learning model.
+    model_name : str
+        Identifier for the type of model.
+    target : str
+        Vectorization target used during training.
+    feature_columns : iterable
+        Feature column names used during training.
+
+    Returns
+    -------
+    None
     """
 
     artifact = {
@@ -345,7 +373,11 @@ def run_experiments():
     """
     Runs multiple experiments using the combinations defined in the methodology.
 
-    You can modify this list to test more combinations.
+    One can modify this list to test more combinations.
+
+    Returns
+    -------
+    None
     """
 
     experiments = [
@@ -449,9 +481,6 @@ if __name__ == "__main__":
     #     random_state=42
     # )
 
-    # If you want to run all combinations, comment the previous block
-    # and uncomment this:
-    #
     results = run_experiments()
     print(results)
     

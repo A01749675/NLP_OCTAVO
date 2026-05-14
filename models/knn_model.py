@@ -4,11 +4,19 @@ from sklearn.neighbors import KNeighborsClassifier
 
 
 def get_model(n_neighbors=15):
-    '''Returns a KNN model pipeline with standard scaling.
-        The value of n_neighbors wwas determined through experimentation, with values between 1 and 21 showing good performance. 
-        The "distance" weighting scheme was chosen to give more importance to closer neighbors, and the "cosine" metric 
-        was selected based on its effectiveness in high-dimensional spaces, which is common in text data.
-    '''
+    """
+    Returns a KNN model pipeline with standard scaling.
+
+    Parameters
+    ----------
+    n_neighbors : int, optional
+        Number of neighbors to use in the KNN classifier. Defaults to 15.
+
+    Returns
+    -------
+    sklearn.pipeline.Pipeline
+        A pipeline containing a scaler and KNeighborsClassifier.
+    """
     return Pipeline([
         ("scaler", StandardScaler()),
         ("classifier", KNeighborsClassifier(
