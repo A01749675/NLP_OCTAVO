@@ -55,6 +55,15 @@ def clean_data(
 ):
     """
     Reads the test CSV, applies text cleaning, and saves a cleaned CSV file.
+    
+    args:
+        input_file (str): Path to the raw test CSV file.
+        output_file (str): Path where the cleaned CSV will be saved.
+        text_column (str): Name of the column containing the text to clean.
+        
+    returns:
+        str: Path to the cleaned CSV file.
+        
     """
 
     df = pd.read_csv(input_file, encoding="utf-8")
@@ -88,6 +97,11 @@ def parse_model_filename(model_file):
     knn-tfidf.pkl
     lr-word2vec.pkl
     rf-tfidf_ngrams.pkl
+    
+    args:
+        model_file (str): The filename of the model artifact.
+    returns:
+        tuple: (model_name, representation)
     """
 
     filename = os.path.basename(model_file)
@@ -120,6 +134,11 @@ def load_model_artifact(model_file):
 
     Also supports older files that only contain the raw model,
     but those are less reliable.
+    
+    args:
+        model_file (str): Path to the saved model artifact.
+    returns:
+        tuple: (model, model_name, target, feature_columns)
     """
 
     loaded = joblib.load(model_file)
@@ -145,6 +164,11 @@ def align_features_to_training(X_test, feature_columns):
     Missing columns are added as 0.
     Extra columns are removed.
     Column order is forced to match training.
+    args:
+        X_test (pd.DataFrame): The test features to align.
+        feature_columns (list): The list of feature columns used during training.
+    returns:
+        pd.DataFrame: The aligned test features.
     """
 
     if feature_columns is None:
@@ -169,6 +193,12 @@ def get_positive_label(y_test, model):
     """
     Chooses the positive class for AUC and specificity.
     Prefers model.classes_[1] when available.
+    
+    args:
+        y_test (array-like): The true labels for the test set.
+        model: The trained model, which may have a classes_ attribute.
+    returns:
+        The label considered as the positive class.
     """
 
     if hasattr(model, "classes_") and len(model.classes_) == 2:
@@ -185,6 +215,15 @@ def get_positive_label(y_test, model):
 def evaluate_model(model, X_test, y_test):
     """
     Evaluates a trained model on aligned test features.
+    
+    args:
+        model: The trained model to evaluate.
+        X_test (pd.DataFrame): The test features, aligned to training columns.
+        y_test (array-like): The true labels for the test set.
+    returns:
+        tuple: (y_pred, results_dict) where y_pred are the predicted labels and
+               results_dict contains accuracy, precision_macro, recall_macro, f1_macro,
+               specificity, and auc.
     """
 
     y_pred = model.predict(X_test)
@@ -258,6 +297,9 @@ def run_model_validation():
     """
     Cleans the test file, vectorizes it, aligns the features with training,
     evaluates every saved model, and exports one CSV with all metrics.
+    
+    returns:
+        pd.DataFrame: A DataFrame containing the evaluation results for all models.
     """
 
     clean_data()

@@ -3,13 +3,17 @@ from sklearn.ensemble import RandomForestClassifier
 
 def get_model(random_state=42):
     """
-        Returns a Random Forest Classifier with 100 trees, balanced class weights, and a fixed random state for reproducibility.
+    Returns a Random Forest Classifier configured for the project.
 
-    Args:
-        random_state (int, optional): _description_. Defaults to 42.
+    Parameters
+    ----------
+    random_state : int, optional
+        Random seed for reproducibility. Defaults to 42.
 
-    Returns:
-        sklearn model: A Random Forest Classifier instance.
+    Returns
+    -------
+    sklearn.ensemble.RandomForestClassifier
+        Configured Random Forest classifier instance.
     """
     return RandomForestClassifier(
         n_estimators=100,

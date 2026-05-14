@@ -116,15 +116,26 @@ def text_filtering(text):
 
 def process_csv(input_file, output_file, text_column="tweet_text"):
     """
-    Receives an input csv file with the raw data of the text and generates a new file with the cleaned text field
+    Reads a CSV, cleans the specified text column, and writes a cleaned CSV file.
 
-    Args:
-        input_file (str): name of the input csv file containing the raw text data.
-        output_file (str): name of the output csv file where the cleaned text data will be saved.
-        text_column (str, optional): _description_. Defaults to "tweet_text".
+    Parameters
+    ----------
+    input_file : str
+        Path to the input CSV file containing raw text data.
+    output_file : str
+        Path where the cleaned CSV will be saved.
+    text_column : str, optional
+        Name of the text column to clean. Defaults to "tweet_text".
 
-    Raises:
-        ValueError: _description_
+    Returns
+    -------
+    str
+        The path to the cleaned CSV file.
+
+    Raises
+    ------
+    ValueError
+        If the specified text column is not present in the input file.
     """
     df = pd.read_csv(input_file, encoding="utf-8")
 
