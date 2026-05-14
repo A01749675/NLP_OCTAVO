@@ -70,7 +70,7 @@ def get_test_size(model_name):
     """
     Defines the train/test split according to the experimental design.
 
-    Random Forest uses 70/30 to analyze overfitting.
+    Random Forest uses 80/20 to analyze overfitting.
     Logistic Regression and KNN use the general 80/20 convention.
 
     Parameters
