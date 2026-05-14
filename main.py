@@ -138,8 +138,23 @@ def test_knn_model(input_file="data_train_cleaned.csv", random_state=42):
     df.to_csv('knn_performance.csv', index=False)
     return performance
 
-def save_model(model,representation,target):
-    joblib.dump(model,representation+'-'+target+'.pkl')
+def save_model(model, model_name, target, feature_columns):
+    """
+    Saves the trained model together with the feature columns used during training.
+    This allows validation/test data to be aligned before prediction.
+    """
+
+    artifact = {
+        "model": model,
+        "model_name": model_name,
+        "target": target,
+        "feature_columns": list(feature_columns)
+    }
+
+    file_name = f"{model_name}-{target}.pkl"
+    joblib.dump(artifact, file_name)
+
+    print(f"Saved model artifact to {file_name}")
 
 def train_and_plot(
     input_file="data_train_cleaned.csv",
@@ -233,7 +248,12 @@ def train_and_plot(
     model.fit(X_train, y_train)
     
     
-    save_model(model,model_name ,target)
+    save_model(
+        model=model,
+        model_name=model_name,
+        target=target,
+        feature_columns=X_train.columns
+    )
 
     # -----------------------------
     # 6. Evaluate model
