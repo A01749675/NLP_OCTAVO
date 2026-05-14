@@ -197,30 +197,46 @@ class TestWord2VecVectorize(unittest.TestCase):
         self.test_dir = tempfile.TemporaryDirectory()
         self.output_csv = os.path.join(self.test_dir.name, "test_word2vec.csv")
 
-        # Physically create the file that the function expects.
+        # 1. Manage the text file
         self.txt_filename = "word2vecText.txt"
         self.file_already_existed = os.path.exists(self.txt_filename)
 
-        # BACKUP: If a real file with that name already existed, save its content
         if self.file_already_existed:
             with open(self.txt_filename, "r", encoding="utf-8") as f:
                 self.backup_content = f.read()
 
-        # Write the test content for Word2Vec to read
         with open(self.txt_filename, "w", encoding="utf-8") as f:
             f.write("anorexia salud dieta peso")
+
+        # 2. Manage the hardcoded model file
+        self.model_filename = "WORD2VEC.model"
+        self.model_already_existed = os.path.exists(self.model_filename)
+
+        if self.model_already_existed:
+            # Rename the user's real model so the test is forced to train a new one
+            self.backup_model = self.model_filename + ".bak"
+            if os.path.exists(self.backup_model):
+                os.remove(self.backup_model)
+            os.rename(self.model_filename, self.backup_model)
 
     def tearDown(self):
         """Runs AFTER each test."""
         self.test_dir.cleanup()
 
-        # RESTORATION: Delete the test file, or restore yours if it existed
+        # 1. Restore the text file
         if self.file_already_existed:
             with open(self.txt_filename, "w", encoding="utf-8") as f:
                 f.write(self.backup_content)
         else:
             if os.path.exists(self.txt_filename):
                 os.remove(self.txt_filename)
+
+        # 2. Clean up the test-generated model and restore the original
+        if os.path.exists(self.model_filename):
+            os.remove(self.model_filename) # Delete the test artifact
+
+        if self.model_already_existed:
+            os.rename(self.backup_model, self.model_filename) # Restore the real model
 
     def test_basic_vectorization(self):
         """Tests basic vector creation with all parameters."""

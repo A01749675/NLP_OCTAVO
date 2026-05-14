@@ -146,18 +146,32 @@ class TestKnnModelExperiment(unittest.TestCase):
 
 class TestSaveModel(unittest.TestCase):
 
-    @patch("main.joblib.dump")
-    def test_save_model_creates_correct_filename(self, mock_dump):
-        """Tests that the filename is correctly concatenated and joblib is called."""
+    @patch("main.joblib.dump") # Update "main..." to match where joblib is imported in your module
+    def test_save_model_creates_correct_filename_and_artifact(self, mock_dump):
+        """Tests that the filename is correctly concatenated and the artifact dict is saved."""
 
-        # Create a fake model
+        # Create fake inputs
         mock_model = MagicMock()
+        fake_features = ["col1", "col2", "col3"]
 
-        # Call function
-        save_model(model=mock_model, representation="tfidf", target="knn")
+        # Call function using the new signature
+        save_model(
+            model=mock_model,
+            model_name="tfidf",
+            target="knn",
+            feature_columns=fake_features
+        )
 
-        # Check that joblib.dump attempted to execute with the model and the exact name
-        mock_dump.assert_called_once_with(mock_model, "tfidf-knn.pkl")
+        # Reconstruct the expected artifact dictionary that the function should create
+        expected_artifact = {
+            "model": mock_model,
+            "model_name": "tfidf",
+            "target": "knn",
+            "feature_columns": fake_features
+        }
+
+        # Check that joblib.dump was called with the exact artifact dictionary and filename
+        mock_dump.assert_called_once_with(expected_artifact, "tfidf-knn.pkl")
 
 # ---------------------------------------------------------
 # Tests for the train_and_plot() function
@@ -193,7 +207,11 @@ class TestTrainAndPlot(unittest.TestCase):
         mock_process.return_value = "vectorized_dummy.csv"
         mock_get_data.return_value = ("X_dummy", "y_dummy")
         mock_get_size.return_value = 0.30
-        mock_split.return_value = ("X_train", "X_test", "y_train", "y_test")
+
+        # FIX: Use a MagicMock for X_train so it has a valid .columns attribute
+        mock_X_train = MagicMock()
+        mock_X_train.columns = ["feature1", "feature2"]
+        mock_split.return_value = (mock_X_train, "X_test", "y_train", "y_test")
 
         # Simulate the trained model
         mock_model = MagicMock()
@@ -216,9 +234,16 @@ class TestTrainAndPlot(unittest.TestCase):
         mock_get_data.assert_called_once_with("vectorized_dummy.csv")
         mock_select.assert_called_once_with(model_name="rf", random_state=42)
 
-        # Verify that the model was trained and saved
-        mock_model.fit.assert_called_once_with("X_train", "y_train")
-        mock_save.assert_called_once_with(mock_model, "rf", "tfidf")
+        # Verify that the model was trained
+        mock_model.fit.assert_called_once_with(mock_X_train, "y_train")
+
+        # FIX: Assert that save_model was called with kwargs and the columns
+        mock_save.assert_called_once_with(
+            model=mock_model,
+            model_name="rf",
+            target="tfidf",
+            feature_columns=["feature1", "feature2"]
+        )
 
         # Verify that the results were calculated correctly
         self.assertEqual(results["accuracy"], 0.90)
@@ -226,12 +251,12 @@ class TestTrainAndPlot(unittest.TestCase):
         self.assertEqual(results["auc"], 0.85)
 
     @patch("main.process_csv", return_value="dummy.csv")
-    @patch("main.get_data", return_value=("X", "y"))
+    @patch("main.get_data")
     @patch("main.get_test_size", return_value=0.2)
-    @patch("main.train_test_split", return_value=("X_tr", "X_te", "y_tr", "y_te"))
+    @patch("main.train_test_split")
     @patch("main.select_model")
     @patch("main.save_model")
-    @patch("main.evaluate_model", return_value=(["preds"], {"acc": 0.8}))
+    @patch("main.evaluate_model", return_value=(["preds"], {"accuracy": 0.90}))
     @patch("main.calculate_auc", return_value=0.8)
     @patch("main.print_metrics")
     @patch("main.plot_class_distribution")
@@ -241,7 +266,8 @@ class TestTrainAndPlot(unittest.TestCase):
     @patch("main.plot_train_vs_test_accuracy_rf")
     def test_pipeline_with_plots_random_forest(
             self,
-            mock_plot_dist, mock_plot_cm, mock_plot_roc, mock_plot_feat, mock_plot_acc,
+            # FIX: Arguments must map to @patch decorators from BOTTOM to TOP.
+            mock_plot_acc, mock_plot_feat, mock_plot_roc, mock_plot_cm, mock_plot_dist,
             mock_print, mock_calc_auc, mock_eval, mock_save, mock_select,
             mock_split, mock_get_size, mock_get_data, mock_process
     ):
@@ -249,11 +275,15 @@ class TestTrainAndPlot(unittest.TestCase):
         mock_model = MagicMock()
         mock_select.return_value = mock_model
 
+        # FIX: Use MagicMocks for data to prevent the .columns AttributeError
+        mock_X = MagicMock()
+        mock_X_train = MagicMock()
+        mock_X_train.columns = ["f1", "f2"]
+
         # Mock return values for required pipeline steps
         mock_process.return_value = "vectorized.csv"
-        mock_get_data.return_value = ("X", "y")
-        mock_split.return_value = ("X_train", "X_test", "y_train", "y_test")
-        mock_eval.return_value = (["preds"], {"accuracy": 0.90})
+        mock_get_data.return_value = (mock_X, "y")
+        mock_split.return_value = (mock_X_train, "X_test", "y_train", "y_test")
 
         # Turn on plots
         with patch("main.PLOTS_ACTIVE", True):

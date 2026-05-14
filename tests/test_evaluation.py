@@ -76,7 +76,6 @@ class TestEvaluateModel(unittest.TestCase):
 class TestPrintMetrics(unittest.TestCase):
 
     @patch("builtins.print")
-    @patch("builtins.print")
     def test_print_metrics_with_all_data(self, mock_print):
         """Test that all metrics are printed with the correct format."""
 
@@ -105,7 +104,6 @@ class TestPrintMetrics(unittest.TestCase):
 
         mock_print.assert_has_calls(expected_calls, any_order=False)
 
-    @patch("builtins.print")
     @patch("builtins.print")
     def test_print_metrics_missing_auc(self, mock_print):
         """Test that the AUC fallback to 'N/A' works correctly."""
