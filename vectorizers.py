@@ -581,7 +581,7 @@ def process_csv(input_file, target):
                 tweet_ids=tweet_ids,
                 classes=classes,
                 output_file=file_name,
-                tfidf_ngram_range=(2, 2),
+                tfidf_ngram_range=(1, 2),
                 count_ngram_range=(2, 2)
             )
 
@@ -593,7 +593,7 @@ def process_csv(input_file, target):
                 tweet_ids=tweet_ids,
                 classes=classes,
                 output_file=file_name,
-                tfidf_ngram_range=(3, 3),
+                tfidf_ngram_range=(1, 3),
                 count_ngram_range=(3, 3)
             )
         case _:
