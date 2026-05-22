@@ -4,7 +4,15 @@ import tempfile
 from unittest.mock import patch
 import pandas as pd
 
-from vectorizers import tfidf_vectorize, ngram_vectorize, word2vec_vectorize, tfidf_ngram_vectorize, all_vectorize, process_csv
+from vectorizers import (
+    tfidf_vectorize,
+    ngram_vectorize,
+    word2vec_vectorize,
+    tfidf_bigrams_vectorize,
+    tfidf_trigrams_vectorize,
+    all_vectorize,
+    process_csv,
+)
 
 # ---------------------------------------------------------
 # Tests for the tfidf_vectorize() function
@@ -293,10 +301,10 @@ class TestWord2VecVectorize(unittest.TestCase):
             self.assertEqual(fila_vacia[f"word2vec_{i}"], 0.0)
 
 # ---------------------------------------------------------
-# Tests for the tfidf_ngram_vectorize() function
+# Tests for the tfidf combined vectorizers
 # ---------------------------------------------------------
 
-class TestTfidfNgramVectorize(unittest.TestCase):
+class TestTfidfCombinedVectorize(unittest.TestCase):
 
     def setUp(self):
         """Runs BEFORE each test. Creates a clean temporary environment."""
@@ -312,15 +320,13 @@ class TestTfidfNgramVectorize(unittest.TestCase):
             if os.path.exists(archivo):
                 os.remove(archivo)
 
-    def test_combined_vectorization(self):
-        """Tests the integration of both vectorizations with all parameters."""
-        # Texts with enough words to test n-grams
+    def test_bigrams_vectorization(self):
+        """Tests TF-IDF + bigrams generation with all parameters."""
         texts = ["un gato negro", "un perro blanco"]
         tweet_ids = [101, 102]
         classes = [0, 1]
 
-        # Execute with Unigrams for TF-IDF (1,1) and Bigrams for Count (2,2)
-        df = tfidf_ngram_vectorize(
+        df = tfidf_bigrams_vectorize(
             texts=texts,
             tweet_ids=tweet_ids,
             classes=classes,
@@ -329,29 +335,45 @@ class TestTfidfNgramVectorize(unittest.TestCase):
             count_ngram_range=(2, 2)
         )
 
-        # 1. Verify final file creation
         self.assertTrue(os.path.exists(self.output_csv))
-
-        # 2. Check column structure (metadata)
         self.assertEqual(len(df), 2)
         self.assertIn("class", df.columns)
         self.assertIn("tweet_id", df.columns)
         self.assertIn("tweet_text_clean", df.columns)
-
-        # 3. Check TF-IDF features (must have the tfidf_ prefix)
         self.assertIn("tfidf_gato", df.columns)
         self.assertIn("tfidf_perro", df.columns)
-
-        # 4. Check N-gram features (must have the ngram_ prefix)
-        # Using range (2,2) extracts bigrams
         self.assertIn("ngram_un gato", df.columns)
         self.assertIn("ngram_perro blanco", df.columns)
+
+    def test_trigrams_vectorization(self):
+        """Tests TF-IDF + trigrams generation with all parameters."""
+        texts = ["un dia muy feliz", "otra frase con palabras"]
+        tweet_ids = [101, 102]
+        classes = [0, 1]
+
+        df = tfidf_trigrams_vectorize(
+            texts=texts,
+            tweet_ids=tweet_ids,
+            classes=classes,
+            output_file=self.output_csv,
+            tfidf_ngram_range=(1, 1),
+            count_ngram_range=(3, 3)
+        )
+
+        self.assertTrue(os.path.exists(self.output_csv))
+        self.assertEqual(len(df), 2)
+        self.assertIn("class", df.columns)
+        self.assertIn("tweet_id", df.columns)
+        self.assertIn("tweet_text_clean", df.columns)
+        self.assertIn("tfidf_dia", df.columns)
+        self.assertIn("ngram_un dia muy", df.columns)
+        self.assertIn("ngram_dia muy feliz", df.columns)
 
     def test_optional_parameters_omitted(self):
         """Tests that the function properly handles the absence of IDs and classes."""
         texts = ["hola mundo feliz", "adios mundo cruel"]
 
-        df = tfidf_ngram_vectorize(
+        df = tfidf_bigrams_vectorize(
             texts=texts,
             tweet_ids=None,
             classes=None,
@@ -360,11 +382,8 @@ class TestTfidfNgramVectorize(unittest.TestCase):
             count_ngram_range=(2, 2)
         )
 
-        # Verify that optional columns do not exist
         self.assertNotIn("class", df.columns)
         self.assertNotIn("tweet_id", df.columns)
-
-        # The text and combined features should still be there
         self.assertIn("tweet_text_clean", df.columns)
         self.assertIn("tfidf_hola", df.columns)
         self.assertIn("ngram_mundo cruel", df.columns)
@@ -540,6 +559,24 @@ class TestProcessCSV(unittest.TestCase):
         self.assertEqual(file_name, "data_train_ngrams.csv")
         mock_ngrams.assert_called_once()
 
+    @patch("vectorizers.ngram_vectorize")
+    def test_target_bigrams(self, mock_ngrams):
+        """Tests that the 'bigrams' target calls ngram_vectorize with bigram settings."""
+        file_name = process_csv(self.valid_input_csv, "bigrams")
+
+        self.assertEqual(file_name, "data_train_bigrams.csv")
+        mock_ngrams.assert_called_once()
+        self.assertEqual(mock_ngrams.call_args.kwargs["ngram_range"], (2, 2))
+
+    @patch("vectorizers.ngram_vectorize")
+    def test_target_trigrams(self, mock_ngrams):
+        """Tests that the 'trigrams' target calls ngram_vectorize with trigram settings."""
+        file_name = process_csv(self.valid_input_csv, "trigrams")
+
+        self.assertEqual(file_name, "data_train_trigrams.csv")
+        mock_ngrams.assert_called_once()
+        self.assertEqual(mock_ngrams.call_args.kwargs["ngram_range"], (3, 3))
+
     @patch("vectorizers.word2vec_vectorize")
     def test_target_word2vec(self, mock_word2vec):
         """Tests that the 'word2vec' target calls the correct function without taking 100 epochs."""
@@ -554,12 +591,19 @@ class TestProcessCSV(unittest.TestCase):
         self.assertEqual(file_name, "data_train_all.csv")
         mock_all.assert_called_once()
 
-    @patch("vectorizers.tfidf_ngram_vectorize")
-    def test_target_tfidf_ngrams(self, mock_tfidf_ngram):
-        """Tests that the 'tfidf_ngrams' target calls the correct function."""
-        file_name = process_csv(self.valid_input_csv, "tfidf_ngrams")
-        self.assertEqual(file_name, "data_train_tfidf_ngrams.csv")
-        mock_tfidf_ngram.assert_called_once()
+    @patch("vectorizers.tfidf_bigrams_vectorize")
+    def test_target_tfidf_bigrams(self, mock_tfidf_bigrams):
+        """Tests that the 'tfidf_bigrams' target calls the correct function."""
+        file_name = process_csv(self.valid_input_csv, "tfidf_bigrams")
+        self.assertEqual(file_name, "data_train_tfidf_bigrams.csv")
+        mock_tfidf_bigrams.assert_called_once()
+
+    @patch("vectorizers.tfidf_trigrams_vectorize")
+    def test_target_tfidf_trigrams(self, mock_tfidf_trigrams):
+        """Tests that the 'tfidf_trigrams' target calls the correct function."""
+        file_name = process_csv(self.valid_input_csv, "tfidf_trigrams")
+        self.assertEqual(file_name, "data_train_tfidf_trigrams.csv")
+        mock_tfidf_trigrams.assert_called_once()
 
     @patch("vectorizers.tfidf_vectorize")
     def test_optional_tweet_ids(self, mock_tfidf):

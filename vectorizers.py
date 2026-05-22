@@ -265,27 +265,16 @@ def word2vec_vectorize(
     return word2vec_df
 
 
-def tfidf_ngram_vectorize(
+def _combine_tfidf_and_ngrams(
     texts,
     tweet_ids,
     classes=None,
     output_file="data_train_tfidf_ngrams.csv",
     tfidf_ngram_range=(1, 1),
-    count_ngram_range=(3, 3)
+    count_ngram_range=(2, 2),
+    label="Combined TF-IDF + N-gram"
 ):
-    """
-    Combines TF-IDF and n-grams into one representation.
-    
-    args:
-        texts (list): List of cleaned tweet texts.
-        tweet_ids (list): List of tweet IDs.
-        classes (list, optional): List of class labels.
-        output_file (str): Name of the output CSV file.
-        tfidf_ngram_range (tuple): Range of n-grams for TF-IDF.
-        count_ngram_range (tuple): Range of n-grams for CountVectorizer.
-    returns:
-        pd.DataFrame: A DataFrame containing the combined TF-IDF and n-gram features along with metadata.
-    """
+    """Shared helper for TF-IDF + count-based n-gram combinations."""
 
     tfidf_df = tfidf_vectorize(
         texts=texts,
@@ -321,12 +310,74 @@ def tfidf_ngram_vectorize(
 
     combined_df.to_csv(output_file, index=False, encoding="utf-8")
 
-    print(f"Combined TF-IDF + N-gram data saved to {output_file}")
+    print(f"{label} data saved to {output_file}")
     print(f"Number of TF-IDF features: {tfidf_df.shape[1] - 3}")
     print(f"Number of N-gram features: {ngram_df.shape[1] - 3}")
     print(f"Total features: {combined_df.shape[1] - 3}")
 
     return combined_df
+
+
+def tfidf_bigrams_vectorize(
+    texts,
+    tweet_ids,
+    classes=None,
+    output_file="data_train_tfidf_bigrams.csv",
+    tfidf_ngram_range=(2, 2),
+    count_ngram_range=(2, 2)
+):
+    """Combines TF-IDF features with bigrams."""
+
+    return _combine_tfidf_and_ngrams(
+        texts=texts,
+        tweet_ids=tweet_ids,
+        classes=classes,
+        output_file=output_file,
+        tfidf_ngram_range=tfidf_ngram_range,
+        count_ngram_range=count_ngram_range,
+        label="Combined TF-IDF + Bigrams"
+    )
+
+
+def tfidf_trigrams_vectorize(
+    texts,
+    tweet_ids,
+    classes=None,
+    output_file="data_train_tfidf_trigrams.csv",
+    tfidf_ngram_range=(1, 1),
+    count_ngram_range=(3, 3)
+):
+    """Combines TF-IDF features with trigrams."""
+
+    return _combine_tfidf_and_ngrams(
+        texts=texts,
+        tweet_ids=tweet_ids,
+        classes=classes,
+        output_file=output_file,
+        tfidf_ngram_range=tfidf_ngram_range,
+        count_ngram_range=count_ngram_range,
+        label="Combined TF-IDF + Trigrams"
+    )
+
+
+def tfidf_ngram_vectorize(
+    texts,
+    tweet_ids,
+    classes=None,
+    output_file="data_train_tfidf_ngrams.csv",
+    tfidf_ngram_range=(1, 1),
+    count_ngram_range=(3, 3)
+):
+    """Backward-compatible alias for trigram-based TF-IDF + n-gram output."""
+
+    return tfidf_trigrams_vectorize(
+        texts=texts,
+        tweet_ids=tweet_ids,
+        classes=classes,
+        output_file=output_file,
+        tfidf_ngram_range=tfidf_ngram_range,
+        count_ngram_range=count_ngram_range
+    )
 
 
 def all_vectorize(
@@ -475,8 +526,8 @@ def process_csv(input_file, target):
                 ngram_range=(1, 1)
             )
 
-        case "ngrams":
-            file_name = "data_train_ngrams.csv"
+        case "ngrams" | "trigrams":
+            file_name = "data_train_ngrams.csv" if target == "ngrams" else "data_train_trigrams.csv"
 
             ngram_vectorize(
                 texts=texts,
@@ -484,6 +535,17 @@ def process_csv(input_file, target):
                 classes=classes,
                 output_file=file_name,
                 ngram_range=(3, 3)
+            )
+
+        case "bigrams":
+            file_name = "data_train_bigrams.csv"
+
+            ngram_vectorize(
+                texts=texts,
+                tweet_ids=tweet_ids,
+                classes=classes,
+                output_file=file_name,
+                ngram_range=(2, 2)
             )
 
         case "word2vec":
@@ -511,20 +573,32 @@ def process_csv(input_file, target):
                 tfidf_ngram_range=(1, 1),
                 count_ngram_range=(3, 3)
             )
-        case "tfidf_ngrams":
-            file_name = "data_train_tfidf_ngrams.csv"
+        case "tfidf_bigrams":
+            file_name = "data_train_tfidf_bigrams.csv"
 
-            tfidf_ngram_vectorize(
+            tfidf_bigrams_vectorize(
                 texts=texts,
                 tweet_ids=tweet_ids,
                 classes=classes,
                 output_file=file_name,
-                tfidf_ngram_range=(1, 1),
+                tfidf_ngram_range=(2, 2),
+                count_ngram_range=(2, 2)
+            )
+
+        case "tfidf_trigrams":
+            file_name = "data_train_tfidf_trigrams.csv"
+
+            tfidf_trigrams_vectorize(
+                texts=texts,
+                tweet_ids=tweet_ids,
+                classes=classes,
+                output_file=file_name,
+                tfidf_ngram_range=(3, 3),
                 count_ngram_range=(3, 3)
             )
         case _:
             raise ValueError(
-                "Invalid target. Use 'tfidf', 'ngrams', 'word2vec', or 'all'."
+                "Invalid target. Use 'tfidf', 'ngrams', 'bigrams', 'trigrams', 'tfidf_bigrams', 'tfidf_trigrams', 'word2vec', or 'all'."
             )
 
     return file_name

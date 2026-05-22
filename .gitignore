@@ -2,10 +2,12 @@
 __pycache__/
 *.py[cod]
 *$py.class
-
+models/__pycache__/
 # Ignore all CSV files
 *.csv
 
 # But allow this specific CSV
 !data_train.csv
+!data_train(in).csv
 *.pkl
+

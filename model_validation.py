@@ -30,17 +30,25 @@ MODELS = [
     "lr-word2vec.pkl",
     "rf-word2vec.pkl",
 
-    "knn-ngrams.pkl",
-    "lr-ngrams.pkl",
-    "rf-ngrams.pkl",
+    "knn-trigrams.pkl",
+    "lr-trigrams.pkl",
+    "rf-trigrams.pkl",
+
+    "knn-bigrams.pkl",
+    "lr-bigrams.pkl",
+    "rf-bigrams.pkl",
 
     "knn-all.pkl",
     "lr-all.pkl",
     "rf-all.pkl",
 
-    "knn-tfidf_ngrams.pkl",
-    "lr-tfidf_ngrams.pkl",
-    "rf-tfidf_ngrams.pkl",
+    "knn-tfidf_bigrams.pkl",
+    "lr-tfidf_bigrams.pkl",
+    "rf-tfidf_bigrams.pkl",
+
+    "knn-tfidf_trigrams.pkl",
+    "lr-tfidf_trigrams.pkl",
+    "rf-tfidf_trigrams.pkl",
 ]
 
 
@@ -96,7 +104,7 @@ def parse_model_filename(model_file):
     Extracts model name and representation from filenames like:
     knn-tfidf.pkl
     lr-word2vec.pkl
-    rf-tfidf_ngrams.pkl
+    rf-tfidf_bigrams.pkl
     
     args:
         model_file (str): The filename of the model artifact.

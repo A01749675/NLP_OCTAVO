@@ -394,15 +394,27 @@ def run_experiments():
             "model_name": "knn"
         },
         {
-            "target": "ngrams",
+            "target": "bigrams",
             "model_name": "rf"
         },
         {
-            "target": "ngrams",
+            "target": "bigrams",
             "model_name": "lr"
         },
         {
-            "target": "ngrams",
+            "target": "bigrams",
+            "model_name": "knn"
+        },
+        {
+            "target": "trigrams",
+            "model_name": "rf"
+        },
+        {
+            "target": "trigrams",
+            "model_name": "lr"
+        },
+        {
+            "target": "trigrams",
             "model_name": "knn"
         },
         {
@@ -430,15 +442,27 @@ def run_experiments():
             "model_name": "knn"
         },
         {
-            "target": "tfidf_ngrams",
+            "target": "tfidf_bigrams",
             "model_name": "rf"
         },
         {
-            "target": "tfidf_ngrams",
+            "target": "tfidf_bigrams",
             "model_name": "lr"
         },
         {
-            "target": "tfidf_ngrams",
+            "target": "tfidf_bigrams",
+            "model_name": "knn"
+        },
+        {
+            "target": "tfidf_trigrams",
+            "model_name": "rf"
+        },
+        {
+            "target": "tfidf_trigrams",
+            "model_name": "lr"
+        },
+        {
+            "target": "tfidf_trigrams",
             "model_name": "knn"
         }
     ]
