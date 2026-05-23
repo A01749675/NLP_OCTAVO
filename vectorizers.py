@@ -5,6 +5,9 @@ from nltk.tokenize import word_tokenize
 from gensim.models import Word2Vec
 
 import os
+
+from paths import resolve_input_path, resolve_output_path
+
 # ---------------------------------------------------------
 # TF-IDF VECTORIZER
 # ---------------------------------------------------------
@@ -40,6 +43,8 @@ def tfidf_vectorize(
     pd.DataFrame
         DataFrame containing TF-IDF features and metadata.
     """
+
+    output_file = resolve_output_path(output_file)
 
     tfidf = TfidfVectorizer(ngram_range=ngram_range)
 
@@ -102,6 +107,8 @@ def ngram_vectorize(
     pd.DataFrame
         DataFrame containing n-gram features and metadata.
     """
+
+    output_file = resolve_output_path(output_file)
 
     vectorizer = CountVectorizer(ngram_range=ngram_range)
 
@@ -182,6 +189,8 @@ def word2vec_vectorize(
     pd.DataFrame
         DataFrame containing Word2Vec features and metadata.
     """
+
+    output_file = resolve_output_path(output_file)
     
     model_file = "WORD2VEC.model"
     
@@ -273,6 +282,8 @@ def _combine_tfidf_and_ngrams(
     label="Combined TF-IDF + N-gram"
 ):
     """Shared helper for TF-IDF + count-based n-gram combinations."""
+
+    output_file = resolve_output_path(output_file)
 
     tfidf_df = tfidf_vectorize(
         texts=texts,
@@ -399,6 +410,8 @@ def all_vectorize(
             pd.DataFrame: A DataFrame containing the combined TF-IDF, n-gram, and Word2Vec features along with metadata.
     """
 
+    output_file = resolve_output_path(output_file)
+
     # -----------------------------
     # 1. TF-IDF
     # -----------------------------
@@ -500,7 +513,8 @@ def process_csv(input_file, target):
         Name of the generated vectorized CSV file.
     """
 
-    df = pd.read_csv(input_file, encoding="utf-8")
+    input_path = resolve_input_path(input_file)
+    df = pd.read_csv(input_path, encoding="utf-8")
 
     if "tweet_text_clean" not in df.columns:
         raise ValueError("The input file must contain a 'tweet_text_clean' column.")
@@ -514,7 +528,7 @@ def process_csv(input_file, target):
 
     match target:
         case "tfidf":
-            file_name = "data_train_tfidf.csv"
+            file_name = resolve_output_path("data_train_tfidf.csv")
 
             tfidf_vectorize(
                 texts=texts,
@@ -525,7 +539,9 @@ def process_csv(input_file, target):
             )
 
         case "ngrams" | "trigrams":
-            file_name = "data_train_ngrams.csv" if target == "ngrams" else "data_train_trigrams.csv"
+            file_name = resolve_output_path(
+                "data_train_ngrams.csv" if target == "ngrams" else "data_train_trigrams.csv"
+            )
 
             ngram_vectorize(
                 texts=texts,
@@ -536,7 +552,7 @@ def process_csv(input_file, target):
             )
 
         case "bigrams":
-            file_name = "data_train_bigrams.csv"
+            file_name = resolve_output_path("data_train_bigrams.csv")
 
             ngram_vectorize(
                 texts=texts,
@@ -547,7 +563,7 @@ def process_csv(input_file, target):
             )
 
         case "word2vec":
-            file_name = "data_train_word2vec.csv"
+            file_name = resolve_output_path("data_train_word2vec.csv")
 
             word2vec_vectorize(
                 texts=texts,
@@ -561,7 +577,7 @@ def process_csv(input_file, target):
             )
 
         case "all":
-            file_name = "data_train_all.csv"
+            file_name = resolve_output_path("data_train_all.csv")
 
             all_vectorize(
                 texts=texts,
@@ -572,7 +588,7 @@ def process_csv(input_file, target):
                 count_ngram_range=(3, 3)
             )
         case "tfidf_bigrams":
-            file_name = "data_train_tfidf_bigrams.csv"
+            file_name = resolve_output_path("data_train_tfidf_bigrams.csv")
 
             tfidf_bigrams_vectorize(
                 texts=texts,
@@ -584,7 +600,7 @@ def process_csv(input_file, target):
             )
 
         case "tfidf_trigrams":
-            file_name = "data_train_tfidf_trigrams.csv"
+            file_name = resolve_output_path("data_train_tfidf_trigrams.csv")
 
             tfidf_trigrams_vectorize(
                 texts=texts,
@@ -607,7 +623,7 @@ def process_csv(input_file, target):
 # ---------------------------------------------------------
 if __name__ == "__main__":
     generated_file = process_csv(
-        input_file="data_train_cleaned.csv",
+        input_file="files/data_train_cleaned.csv",
         target="word2vec"
     )
 

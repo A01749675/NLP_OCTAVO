@@ -1,5 +1,6 @@
 from sklearn.model_selection import train_test_split
 
+from paths import resolve_model_path, resolve_output_path
 from vectorizers import process_csv
 from data_loader import get_data
 
@@ -92,14 +93,14 @@ def get_test_size(model_name):
     return 0.20
 
 
-def test_knn_model(input_file="data_train_cleaned.csv", random_state=42):
+def test_knn_model(input_file="files/data_train_cleaned.csv", random_state=42):
     """
     Runs KNN experiments over several vectorization representations.
 
     Parameters
     ----------
     input_file : str, optional
-        Path to the cleaned training CSV file. Defaults to "data_train_cleaned.csv".
+        Path to the cleaned training CSV file. Defaults to "files/data_train_cleaned.csv".
     random_state : int, optional
         Seed for reproducible train/test splits. Defaults to 42.
 
@@ -149,7 +150,7 @@ def test_knn_model(input_file="data_train_cleaned.csv", random_state=42):
                 **results
             })
     df = pd.DataFrame(performance)
-    df.to_csv('knn_performance.csv', index=False)
+    df.to_csv(resolve_output_path('knn_performance.csv'), index=False)
     return performance
 
 def save_model(model, model_name, target, feature_columns):
@@ -180,12 +181,13 @@ def save_model(model, model_name, target, feature_columns):
     }
 
     file_name = f"{model_name}-{target}.pkl"
-    joblib.dump(artifact, file_name)
+    model_path = resolve_model_path(file_name)
+    joblib.dump(artifact, model_path)
 
-    print(f"Saved model artifact to {file_name}")
+    print(f"Saved model artifact to {model_path}")
 
 def train_and_plot(
-    input_file="data_train_cleaned.csv",
+    input_file="files/data_train_cleaned.csv",
     target="tfidf",
     model_name="rf",
     random_state=42
@@ -477,7 +479,7 @@ def run_experiments():
         print("=" * 60)
 
         model, results = train_and_plot(
-            input_file="data_train_cleaned.csv",
+            input_file="files/data_train_cleaned.csv",
             target=experiment["target"],
             model_name=experiment["model_name"],
             random_state=42
@@ -491,7 +493,7 @@ def run_experiments():
 
         all_results.append(results_record)
     df = pd.DataFrame(all_results)
-    df.to_csv('all_experiments.csv')
+    df.to_csv(resolve_output_path('all_experiments.csv'))
     
     return all_results
 

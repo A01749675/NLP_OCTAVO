@@ -17,6 +17,12 @@
 - The preprocessing pipeline removes URLs, hashtags, mentions, numbers, punctuation, extra whitespace, Spanish stopwords, and applies stemming.
 - The `text_lemmatization()` helper exists, but it is not part of the active `text_filtering()` pipeline.
 
+### CSV path handling
+- `paths.py` centralizes input and output path resolution.
+- Generated CSVs are written under the `files/` directory.
+- `resolve_input_path()` checks `files/` first and then falls back to the repository root for backward compatibility.
+- `resolve_output_path()` always writes under `files/` and creates the folder if needed.
+
 ### Vectorization
 - `vectorizers.py` exposes the current vectorizers and routing helpers:
   - `tfidf_vectorize()`
@@ -65,19 +71,26 @@ The combined TF-IDF variants currently use these settings:
 
 ## Data files
 
-- `data_train(in).csv` -> raw input dataset
-- `data_train_cleaned.csv` -> cleaned dataset output used by the training pipeline
-- `data_train_tfidf.csv` -> TF-IDF features
-- `data_train_ngrams.csv` -> generic n-gram features
-- `data_train_bigrams.csv` -> bigram features
-- `data_train_trigrams.csv` -> trigram features
-- `data_train_word2vec.csv` -> Word2Vec features
-- `data_train_all.csv` -> combined TF-IDF + n-gram + Word2Vec representation
-- `data_train_tfidf_bigrams.csv` -> combined TF-IDF + bigram representation
-- `data_train_tfidf_trigrams.csv` -> combined TF-IDF + trigram representation
+### Source inputs
+- `files/data_train(in).csv` -> raw input dataset used by the current pipeline
+- `files/data_test_fold1(in).csv` -> raw test dataset used by validation
+- `files/data_train_cleaned.csv` -> cleaned dataset output used by the training pipeline
+
+### Generated artifacts
+- `files/data_train_tfidf.csv` -> TF-IDF features
+- `files/data_train_ngrams.csv` -> generic n-gram features
+- `files/data_train_bigrams.csv` -> bigram features
+- `files/data_train_trigrams.csv` -> trigram features
+- `files/data_train_word2vec.csv` -> Word2Vec features
+- `files/data_train_all.csv` -> combined TF-IDF + n-gram + Word2Vec representation
+- `files/data_train_tfidf_bigrams.csv` -> combined TF-IDF + bigram representation
+- `files/data_train_tfidf_trigrams.csv` -> combined TF-IDF + trigram representation
+- `files/model_evaluation_results.csv` -> generated output from `model_validation.py`
+- `files/temporary_tfidf.csv` and `files/temporary_ngrams.csv` -> temporary vectorization outputs used during validation and tests
+
+### Model artifacts
 - `WORD2VEC.model` -> cached Word2Vec model used by `word2vec_vectorize()`
 - `word2vecText.txt` -> auxiliary domain text used for Word2Vec training
-- `model_evaluation_results.csv` -> generated output from `model_validation.py`
 
 ## Requirements
 
@@ -97,22 +110,24 @@ pip install -r requirements.txt
 python text_cleaner.py
 ```
 
+This uses `paths.py` to read `files/data_train(in).csv` and write `files/data_train_cleaned.csv`.
+
 ### Run the full experiment suite
 
 ```bash
 python main.py
 ```
 
-`main.py` calls `run_experiments()` and saves model artifacts as `model-representation.pkl` files.
+`main.py` calls `run_experiments()` and saves model artifacts as `model-representation.pkl` files in the repository root.
 
 ### Vectorize a cleaned CSV manually
 
 ```python
 from vectorizers import process_csv
 
-process_csv("data_train_cleaned.csv", "tfidf")
-process_csv("data_train_cleaned.csv", "tfidf_bigrams")
-process_csv("data_train_cleaned.csv", "word2vec")
+process_csv("files/data_train_cleaned.csv", "tfidf")
+process_csv("files/data_train_cleaned.csv", "tfidf_bigrams")
+process_csv("files/data_train_cleaned.csv", "word2vec")
 ```
 
 ### Train a single model configuration
@@ -121,7 +136,7 @@ process_csv("data_train_cleaned.csv", "word2vec")
 from main import train_and_plot
 
 train_and_plot(
-    input_file="data_train_cleaned.csv",
+    input_file="files/data_train_cleaned.csv",
     target="tfidf",
     model_name="rf",
     random_state=42
@@ -133,7 +148,7 @@ train_and_plot(
 ```python
 from main import test_knn_model
 
-test_knn_model(input_file="data_train_cleaned.csv")
+test_knn_model(input_file="files/data_train_cleaned.csv")
 ```
 
 ### Validate saved models
@@ -142,7 +157,7 @@ test_knn_model(input_file="data_train_cleaned.csv")
 python model_validation.py
 ```
 
-This reads the current `MODELS` list from `model_validation.py`, vectorizes the cleaned test file, aligns any missing feature columns to zero, evaluates each saved artifact, and exports `model_evaluation_results.csv`.
+This reads the current `MODELS` list from `model_validation.py`, cleans `files/data_test_fold1(in).csv`, vectorizes the test file using the saved model target, aligns any missing feature columns to zero, evaluates each saved artifact, and exports `files/model_evaluation_results.csv`.
 
 ## Current experiment coverage
 

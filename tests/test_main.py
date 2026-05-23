@@ -1,3 +1,4 @@
+import os
 import unittest
 from unittest.mock import patch, MagicMock
 
@@ -138,7 +139,10 @@ class TestKnnModelExperiment(unittest.TestCase):
         self.assertEqual(performance[0]["accuracy"], 0.95)
 
         # Verify that the final file attempt to save occurred
-        mock_to_csv.assert_called_once_with('knn_performance.csv', index=False)
+        mock_to_csv.assert_called_once_with(
+            os.path.join('files', 'knn_performance.csv'),
+            index=False
+        )
 
 # ---------------------------------------------------------
 # Tests for the save_model() function
@@ -170,8 +174,8 @@ class TestSaveModel(unittest.TestCase):
             "feature_columns": fake_features
         }
 
-        # Check that joblib.dump was called with the exact artifact dictionary and filename
-        mock_dump.assert_called_once_with(expected_artifact, "tfidf-knn.pkl")
+        # Check that joblib.dump was called with the exact artifact dictionary and model_files path
+        mock_dump.assert_called_once_with(expected_artifact, os.path.join("model_files", "tfidf-knn.pkl"))
 
 # ---------------------------------------------------------
 # Tests for the train_and_plot() function
@@ -311,7 +315,7 @@ class TestRunExperiments(unittest.TestCase):
     @patch("main.train_and_plot")
     @patch("builtins.print")  # Prevents the console from filling with prints during the test
     def test_run_experiments_orchestration(self, mock_print, mock_train_and_plot, mock_to_csv):
-        """Tests that the experimentation loop runs 15 times and saves the results."""
+        """Tests that the experimentation loop runs 21 times and saves the results."""
 
         # 1. Configure the mock values
         # train_and_plot returns a tuple: (model, results_dictionary)
@@ -323,10 +327,10 @@ class TestRunExperiments(unittest.TestCase):
         all_results = run_experiments()
 
         # 3. Verifications
-        self.assertEqual(len(all_results), 15)
+        self.assertEqual(len(all_results), 21)
 
-        # Check that train_and_plot was called exactly 15 times
-        self.assertEqual(mock_train_and_plot.call_count, 15)
+        # Check that train_and_plot was called exactly 21 times
+        self.assertEqual(mock_train_and_plot.call_count, 21)
 
         # Check the structure of the first saved result
         first_result = all_results[0]
@@ -335,7 +339,7 @@ class TestRunExperiments(unittest.TestCase):
         self.assertEqual(first_result["accuracy"], 0.88)  # The mock value we injected
 
         # Check that at the end of the loop, the CSV was saved
-        mock_to_csv.assert_called_once_with('all_experiments.csv')
+        mock_to_csv.assert_called_once_with(os.path.join('files', 'all_experiments.csv'))
 
 if __name__ == '__main__':
     unittest.main()
