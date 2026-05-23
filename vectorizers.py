@@ -3,9 +3,7 @@ import numpy as np
 from sklearn.feature_extraction.text import TfidfVectorizer, CountVectorizer
 from nltk.tokenize import word_tokenize
 from gensim.models import Word2Vec
-from text_cleaner import text_filtering
-import joblib
-from pathlib import Path
+
 import os
 # ---------------------------------------------------------
 # TF-IDF VECTORIZER
@@ -219,7 +217,7 @@ def word2vec_vectorize(
         Hoy desperté sintiendo que mi mente empezó antes que mi cuerpo. 
         Es extraño vivir así, como si mi cabeza estuviera siempre ocupada 
         por la comida, el peso, el espejo, la ropa, la imagen y la culpa.
-        ... (Insert full monologue text here) ...
+        
         """
         
         domain_tokens = clean_and_tokenize(domain_document)

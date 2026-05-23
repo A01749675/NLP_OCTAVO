@@ -188,11 +188,7 @@ def align_features_to_training(X_test, feature_columns):
 
     X_test = X_test.copy()
 
-    for column in feature_columns:
-        if column not in X_test.columns:
-            X_test[column] = 0
-
-    X_test = X_test[feature_columns]
+    X_test = X_test.reindex(columns=feature_columns, fill_value=0)
 
     return X_test
 
