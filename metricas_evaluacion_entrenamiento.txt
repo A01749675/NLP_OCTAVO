@@ -1,0 +1,18 @@
+==================================================
+REPORTE DE EVALUACIÓN - BETO
+Fecha y Hora: 2026-05-22 20:13:11
+==================================================
+
+eval_loss                     : 0.4702
+eval_accuracy                 : 0.7889
+eval_f1                       : 0.8081
+eval_precision                : 0.7874
+eval_recall                   : 0.8299
+eval_specificity              : 0.7416
+eval_auc                      : 0.8849
+eval_runtime                  : 0.968
+eval_samples_per_second       : 464.854
+eval_steps_per_second         : 15.495
+epoch                         : 4.0000
+
+==================================================
