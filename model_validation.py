@@ -6,6 +6,7 @@ import pandas as pd
 from sklearn import metrics
 from sklearn.metrics import confusion_matrix, roc_auc_score
 
+from paths import resolve_input_path, resolve_model_path, resolve_output_path
 from vectorizers import process_csv
 from data_loader import get_data
 
@@ -14,9 +15,9 @@ from data_loader import get_data
 # Configuration
 # ---------------------------------------------------------
 
-INPUT_TEST_FILE = "data_test_fold1(in).csv"
-CLEANED_TEST_FILE = "cleaned_data_test_fold1(in).csv"
-OUTPUT_RESULTS_FILE = "model_evaluation_results.csv"
+INPUT_TEST_FILE = os.path.join("files", "data_test_fold1(in).csv")
+CLEANED_TEST_FILE = os.path.join("files", "cleaned_data_test_fold1(in).csv")
+OUTPUT_RESULTS_FILE = resolve_output_path("model_evaluation_results.csv")
 
 TEXT_COLUMN = "tweet_text"
 LABEL_COLUMN = "class"
@@ -74,7 +75,10 @@ def clean_data(
         
     """
 
-    df = pd.read_csv(input_file, encoding="utf-8")
+    input_path = resolve_input_path(input_file)
+    output_path = resolve_output_path(output_file)
+
+    df = pd.read_csv(input_path, encoding="utf-8")
 
     if text_column not in df.columns:
         raise ValueError(
@@ -88,11 +92,11 @@ def clean_data(
             f"Target column '{LABEL_COLUMN}' was not found. Available columns: {list(df.columns)}"
         )
 
-    df.to_csv(output_file, index=False, encoding="utf-8")
+    df.to_csv(output_path, index=False, encoding="utf-8")
 
-    print(f"Cleaned data saved to {output_file}")
+    print(f"Cleaned data saved to {output_path}")
 
-    return output_file
+    return output_path
 
 
 # ---------------------------------------------------------
@@ -149,7 +153,8 @@ def load_model_artifact(model_file):
         tuple: (model, model_name, target, feature_columns)
     """
 
-    loaded = joblib.load(model_file)
+    model_path = resolve_model_path(model_file)
+    loaded = joblib.load(model_path)
 
     if isinstance(loaded, dict):
         model = loaded["model"]
@@ -188,11 +193,7 @@ def align_features_to_training(X_test, feature_columns):
 
     X_test = X_test.copy()
 
-    for column in feature_columns:
-        if column not in X_test.columns:
-            X_test[column] = 0
-
-    X_test = X_test[feature_columns]
+    X_test = X_test.reindex(columns=feature_columns, fill_value=0)
 
     return X_test
 
@@ -315,7 +316,7 @@ def run_model_validation():
     all_results = []
 
     for model_file in MODELS:
-
+        model_file = resolve_model_path(model_file)
         if not os.path.exists(model_file):
             print(f"Skipping missing model file: {model_file}")
             continue

@@ -1,5 +1,7 @@
 import pandas as pd
 
+from paths import resolve_input_path
+
 
 def get_data(vectorized_file):
     """
@@ -15,7 +17,7 @@ def get_data(vectorized_file):
     tuple[pandas.DataFrame, pandas.Series]
         Feature matrix X and label vector y.
     """
-    df = pd.read_csv(vectorized_file, encoding="utf-8")
+    df = pd.read_csv(resolve_input_path(vectorized_file), encoding="utf-8")
 
     if "class" not in df.columns:
         raise ValueError("The vectorized file must contain a 'class' column.")

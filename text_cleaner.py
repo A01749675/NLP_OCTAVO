@@ -10,6 +10,8 @@ from nltk.stem import SnowballStemmer
 import Stemmer
 import spacy
 
+from paths import resolve_input_path, resolve_output_path
+
 
 # 1. Initialize the stemmer for a specific language
 stemmer = Stemmer.Stemmer('spanish')
@@ -137,15 +139,20 @@ def process_csv(input_file, output_file, text_column="tweet_text"):
     ValueError
         If the specified text column is not present in the input file.
     """
-    df = pd.read_csv(input_file, encoding="utf-8")
+    input_path = resolve_input_path(input_file)
+    output_path = resolve_output_path(output_file)
+
+    df = pd.read_csv(input_path, encoding="utf-8")
 
     if text_column not in df.columns:
         raise ValueError(f"Column '{text_column}' not found. Available columns: {list(df.columns)}")
 
     df[f"{text_column}_clean"] = df[text_column].apply(text_filtering)
 
-    df.to_csv(output_file, index=False, encoding="utf-8")
-    print(f"Saved cleaned CSV to: {output_file}")
+    df.to_csv(output_path, index=False, encoding="utf-8")
+    print(f"Saved cleaned CSV to: {output_path}")
+
+    return output_path
 
 if __name__ == "__main__":
-    process_csv("data_train(in).csv", "data_train_cleaned.csv", text_column="tweet_text")
+    process_csv("files/data_train(in).csv", "files/data_train_cleaned.csv", text_column="tweet_text")
