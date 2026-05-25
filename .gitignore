@@ -11,3 +11,5 @@ models/__pycache__/
 !data_train(in).csv
 *.pkl
 
+/resultados_beto
+/modelo_beto_final
