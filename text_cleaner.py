@@ -1,3 +1,11 @@
+"""Text preprocessing utilities for the NLP pipeline.
+
+This module centralizes the cleaning, normalization, stopword removal,
+stemming, and CSV processing steps used before feature extraction and model
+training. It relies on NLTK, spaCy, and the project's path helpers to work
+with the repository's datasets.
+"""
+
 import pandas as pd
 import re
 import string
