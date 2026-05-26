@@ -14,10 +14,12 @@ from gensim.models import Word2Vec
 import torch
 from transformers import BertTokenizer, BertModel
 from tqdm import tqdm
+from sklearn.decomposition import PCA
 
 import os
 
 from paths import resolve_input_path, resolve_output_path
+from sklearn.model_selection import train_test_split
 
 # ---------------------------------------------------------
 # TF-IDF VECTORIZER
@@ -517,19 +519,9 @@ def beto_vectorize(
     # --- NUEVO: SISTEMA DE CARGA CON RESPALDO (FALLBACK) ---
     modelo_base = "dccuchile/bert-base-spanish-wwm-cased"
     
-    try:
-        print(f"Intentando cargar modelo BETO afinado desde: '{ruta_modelo}'...")
-        tokenizer = BertTokenizer.from_pretrained(ruta_modelo)
-        modelo = BertModel.from_pretrained(ruta_modelo)
-        print("✅ ¡Modelo local cargado con éxito!")
-        
-    except Exception as e:
-        print(f"⚠️ No se encontró el modelo local (o está incompleto) en '{ruta_modelo}'.")
-        print(f"⬇️ Descargando/Cargando el modelo base de respaldo: '{modelo_base}'...")
-        tokenizer = BertTokenizer.from_pretrained(modelo_base)
-        modelo = BertModel.from_pretrained(modelo_base)
-        print("✅ ¡Modelo base cargado con éxito!")
-    # -------------------------------------------------------
+    
+    tokenizer = BertTokenizer.from_pretrained(modelo_base)
+    modelo = BertModel.from_pretrained(modelo_base)
 
     # Usar GPU si está disponible
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -573,7 +565,7 @@ def beto_vectorize(
     
     if classes is not None:
         df_output["class"] = classes
-
+    output_file = resolve_output_path(output_file)
     # Guardar en disco
     df_output.to_csv(output_file, index=False, encoding="utf-8")
     
@@ -585,7 +577,7 @@ def beto_vectorize(
 # ---------------------------------------------------------
 # PROCESS CSV
 # ---------------------------------------------------------
-def process_csv(input_file, target):
+def process_csv(input_file, target, only_train=False, test_size=0.2, random_state=42):
     """
     Reads a cleaned CSV file and generates the selected vectorized file.
 
@@ -594,6 +586,7 @@ def process_csv(input_file, target):
     - "ngrams"
     - "word2vec"
     - "all"
+    - "beto"
 
     Parameters
     ----------
@@ -621,6 +614,22 @@ def process_csv(input_file, target):
     texts = df["tweet_text_clean"].fillna("").tolist()
     tweet_ids = df["tweet_id"].tolist() if "tweet_id" in df.columns else None
     classes = df["class"].tolist()
+
+    # If requested, return only the training portion (to avoid embedding test rows)
+    if only_train:
+        stratify = classes if classes is not None else None
+        X_train_texts, _, y_train, _, train_ids, _ = train_test_split(
+            texts,
+            classes,
+            tweet_ids,
+            test_size=test_size,
+            random_state=random_state,
+            stratify=stratify
+        )
+
+        texts = X_train_texts
+        classes = y_train
+        tweet_ids = train_ids
 
     match target:
         case "tfidf":
@@ -706,9 +715,19 @@ def process_csv(input_file, target):
                 tfidf_ngram_range=(1, 3),
                 count_ngram_range=(3, 3)
             )
+        case "beto":
+            file_name = resolve_output_path("data_beto_embeddings.csv")
+            beto_vectorize(
+                texts=texts,
+                tweet_ids=tweet_ids,
+                classes=classes,
+                output_file=file_name,
+                ruta_modelo="./modelo_beto_final",
+                batch_size=32
+            )
         case _:
             raise ValueError(
-                "Invalid target. Use 'tfidf', 'ngrams', 'bigrams', 'trigrams', 'tfidf_bigrams', 'tfidf_trigrams', 'word2vec', or 'all'."
+                "Invalid target. Use 'tfidf', 'ngrams', 'bigrams', 'trigrams', 'tfidf_bigrams', 'tfidf_trigrams', 'word2vec', 'beto', or 'all'."
             )
 
     return file_name

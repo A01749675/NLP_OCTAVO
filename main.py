@@ -122,8 +122,9 @@ def test_knn_model(input_file="files/data_train_cleaned.csv", random_state=42):
     performance = []
     for target in vectorization_targets:
         vectorized_file = process_csv(
-            input_file=input_file,
-            target=target
+                input_file=input_file,
+                target=target,
+                only_train=(target == 'beto')
         )
     
         X, y = get_data(vectorized_file)
@@ -474,12 +475,27 @@ def run_experiments():
         {
             "target": "tfidf_trigrams",
             "model_name": "knn"
+        },
+        {
+            "target":"beto",
+            "model_name":"knn"
+        },
+        {
+            "target":"beto",
+            "model_name":"rf"
+        },
+        {
+            "target":"beto",
+            "model_name":"lr"
         }
     ]
 
     all_results = []
+    
 
     for experiment in experiments:
+        input_file = "files/data_train_cleaned.csv" if experiment["target"]!='beto' else 'files/data_train_cleaned2.csv'
+    
         print("\n" + "=" * 60)
         print(
             f"Running experiment: {experiment['target']} + {experiment['model_name']}"
@@ -487,7 +503,7 @@ def run_experiments():
         print("=" * 60)
 
         model, results = train_and_plot(
-            input_file="files/data_train_cleaned.csv",
+            input_file=input_file,
             target=experiment["target"],
             model_name=experiment["model_name"],
             random_state=42
@@ -514,7 +530,12 @@ if __name__ == "__main__":
     #     model_name="rf",
     #     random_state=42
     # )
-
+    # model, results = train_and_plot(
+    #         input_file="files/data_train_cleaned2.csv",
+    #         target='beto',
+    #         model_name='knn',
+    #         random_state=42
+    #     )
     results = run_experiments()
     print(results)
     

@@ -23,9 +23,10 @@ from data_loader import get_data
 # ---------------------------------------------------------
 # Configuration
 # ---------------------------------------------------------
-
+#
 INPUT_TEST_FILE = os.path.join("files", "data_test_fold1(in).csv")
 CLEANED_TEST_FILE = os.path.join("files", "cleaned_data_test_fold1(in).csv")
+CLEANED_TEST_FILE_2 = os.path.join("files", "cleaned_data_test_fold1(in)2.csv")
 OUTPUT_RESULTS_FILE = resolve_output_path("model_evaluation_results.csv")
 
 TEXT_COLUMN = "tweet_text"
@@ -59,6 +60,10 @@ MODELS = [
     "knn-tfidf_trigrams.pkl",
     "lr-tfidf_trigrams.pkl",
     "rf-tfidf_trigrams.pkl",
+    
+    "knn-beto.pkl",
+    "lr-beto.pkl",
+    "rf-beto.pkl"
 ]
 
 
@@ -95,6 +100,49 @@ def clean_data(
         )
 
     df["tweet_text_clean"] = df[text_column].fillna("").apply(text_filtering)
+
+    if LABEL_COLUMN not in df.columns:
+        raise ValueError(
+            f"Target column '{LABEL_COLUMN}' was not found. Available columns: {list(df.columns)}"
+        )
+
+    df.to_csv(output_path, index=False, encoding="utf-8")
+
+    print(f"Cleaned data saved to {output_path}")
+
+    return output_path
+
+
+
+def clean_data_2(
+    input_file=INPUT_TEST_FILE,
+    output_file=CLEANED_TEST_FILE_2,
+    text_column=TEXT_COLUMN
+):
+    """
+    Reads the test CSV, applies text cleaning, and saves a cleaned CSV file.
+    
+    args:
+        input_file (str): Path to the raw test CSV file.
+        output_file (str): Path where the cleaned CSV will be saved.
+        text_column (str): Name of the column containing the text to clean.
+        
+    returns:
+        str: Path to the cleaned CSV file.
+        
+    """
+
+    input_path = resolve_input_path(input_file)
+    output_path = resolve_output_path(output_file)
+
+    df = pd.read_csv(input_path, encoding="utf-8")
+
+    if text_column not in df.columns:
+        raise ValueError(
+            f"Column '{text_column}' was not found. Available columns: {list(df.columns)}"
+        )
+
+    df["tweet_text_clean"] = df[text_column].fillna("").apply(text_filtering2)
 
     if LABEL_COLUMN not in df.columns:
         raise ValueError(
@@ -321,10 +369,13 @@ def run_model_validation():
     """
 
     clean_data()
-
+    clean_data_2()
+    
     all_results = []
 
     for model_file in MODELS:
+            
+        
         model_file = resolve_model_path(model_file)
         if not os.path.exists(model_file):
             print(f"Skipping missing model file: {model_file}")
@@ -342,11 +393,16 @@ def run_model_validation():
         print(f"Model: {model_name}")
         print(f"Representation: {target}")
         print("=" * 60)
-
-        vectorized_test_file = process_csv(
-            input_file=CLEANED_TEST_FILE,
-            target=target
-        )
+        if "beto" in model_file:
+            vectorized_test_file = process_csv(
+                input_file=CLEANED_TEST_FILE_2,
+                target=target
+            )
+        else:
+            vectorized_test_file = process_csv(
+                input_file=CLEANED_TEST_FILE,
+                target=target
+            )
 
         X_test, y_test = get_data(vectorized_test_file)
 

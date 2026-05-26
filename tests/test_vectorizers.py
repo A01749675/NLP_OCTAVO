@@ -588,6 +588,13 @@ class TestProcessCSV(unittest.TestCase):
         self.assertEqual(file_name, os.path.join("files", "data_train_word2vec.csv"))
         mock_word2vec.assert_called_once()
 
+    @patch("vectorizers.beto_vectorize")
+    def test_target_beto(self, mock_beto):
+        """Tests that the 'beto' target calls the correct embedding function."""
+        file_name = process_csv(self.valid_input_csv, "beto")
+        self.assertEqual(file_name, os.path.join("files", "data_beto_embeddings.csv"))
+        mock_beto.assert_called_once()
+
     @patch("vectorizers.all_vectorize")
     def test_target_all(self, mock_all):
         """Tests that the 'all' target calls the correct function."""
