@@ -3,6 +3,9 @@ import numpy as np
 from sklearn.feature_extraction.text import TfidfVectorizer, CountVectorizer
 from nltk.tokenize import word_tokenize
 from gensim.models import Word2Vec
+import torch
+from transformers import BertTokenizer, BertModel
+from tqdm import tqdm
 
 import os
 
@@ -486,6 +489,91 @@ def all_vectorize(
     print(f"Total features: {all_df.shape[1] - 3}")
 
     return all_df
+
+
+
+
+def beto_vectorize(
+    texts,
+    tweet_ids,
+    classes=None,
+    output_file="data_beto_embeddings.csv",
+    ruta_modelo="./modelo_beto_final",
+    batch_size=32
+):
+    """
+    Convierte una lista de textos en vectores numéricos densos (embeddings) 
+    usando un modelo BETO local, o descargando el modelo base si el local no existe.
+    """
+    
+    # --- NUEVO: SISTEMA DE CARGA CON RESPALDO (FALLBACK) ---
+    modelo_base = "dccuchile/bert-base-spanish-wwm-cased"
+    
+    try:
+        print(f"Intentando cargar modelo BETO afinado desde: '{ruta_modelo}'...")
+        tokenizer = BertTokenizer.from_pretrained(ruta_modelo)
+        modelo = BertModel.from_pretrained(ruta_modelo)
+        print("✅ ¡Modelo local cargado con éxito!")
+        
+    except Exception as e:
+        print(f"⚠️ No se encontró el modelo local (o está incompleto) en '{ruta_modelo}'.")
+        print(f"⬇️ Descargando/Cargando el modelo base de respaldo: '{modelo_base}'...")
+        tokenizer = BertTokenizer.from_pretrained(modelo_base)
+        modelo = BertModel.from_pretrained(modelo_base)
+        print("✅ ¡Modelo base cargado con éxito!")
+    # -------------------------------------------------------
+
+    # Usar GPU si está disponible
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    print(f"Procesando con: {device}")
+    
+    modelo.to(device)
+    modelo.eval() # Modo evaluación (apaga el dropout)
+
+    todos_los_vectores = []
+    print("Extrayendo vectores (embeddings)...")
+    
+    # Procesar en lotes
+    for i in tqdm(range(0, len(texts), batch_size)):
+        lote_textos = texts[i : i + batch_size]
+        
+        # Tokenizar el lote
+        inputs = tokenizer(
+            lote_textos,
+            padding=True,
+            truncation=True,
+            max_length=128,
+            return_tensors="pt"
+        ).to(device)
+
+        # Pasar por el modelo sin calcular gradientes
+        with torch.no_grad():
+            outputs = modelo(**inputs)
+
+        # Extraer el vector del token [CLS]
+        lote_vectores = outputs.last_hidden_state[:, 0, :].cpu().numpy()
+        todos_los_vectores.append(lote_vectores)
+
+    # Unir todos los lotes y armar el DataFrame final
+    matriz_vectores = np.vstack(todos_los_vectores)
+
+    print("Armando el dataset final...")
+    columnas_features = [f"beto_feat_{j}" for j in range(matriz_vectores.shape[1])]
+    df_output = pd.DataFrame(matriz_vectores, columns=columnas_features)
+
+    df_output.insert(0, "tweet_id", tweet_ids)
+    
+    if classes is not None:
+        df_output["class"] = classes
+
+    # Guardar en disco
+    df_output.to_csv(output_file, index=False, encoding="utf-8")
+    
+    print(f"¡Listo! Archivo guardado exitosamente en: {output_file}")
+    print(f"Forma del dataset: {df_output.shape} (Filas, Columnas)")
+
+    return df_output
+
 # ---------------------------------------------------------
 # PROCESS CSV
 # ---------------------------------------------------------

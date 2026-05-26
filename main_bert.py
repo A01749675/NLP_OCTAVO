@@ -26,7 +26,7 @@ class TweetDataset(Dataset):
 tokenizer = BertTokenizer.from_pretrained("dccuchile/bert-base-spanish-wwm-cased")
 
 # 3. Carga y preparación de datos
-df = pd.read_csv("data_train_cleaned.csv", encoding="utf-8")
+df = pd.read_csv("files/data_train_cleaned2.csv", encoding="utf-8")
 
 X = df["tweet_text_clean"]
 y = df["class"]

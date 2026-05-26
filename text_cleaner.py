@@ -116,6 +116,22 @@ def text_filtering(text):
     #text = text_lemmatization(text)
     return text
 
+def text_filtering2(text):
+    """ 
+        Applies a series of text preprocessing steps to clean and normalize the input text.
+        The steps include cleaning the text, removing stopwords, and applying stemming.
+        Args:
+            text (str): The input text to be processed.
+        Returns:
+            str: The processed text after cleaning, stopword removal, and stemming.
+            
+    """
+    text = clean_text(text)
+    #text = stopword_remover_nltk(text)
+    #text = text_stemming(text)
+    #text = text_lemmatization(text)
+    return text
+
 def process_csv(input_file, output_file, text_column="tweet_text"):
     """
     Reads a CSV, cleans the specified text column, and writes a cleaned CSV file.
@@ -154,5 +170,43 @@ def process_csv(input_file, output_file, text_column="tweet_text"):
 
     return output_path
 
+def process_csv2(input_file, output_file, text_column="tweet_text"):
+    """
+    Reads a CSV, cleans the specified text column, and writes a cleaned CSV file.
+
+    Parameters
+    ----------
+    input_file : str
+        Path to the input CSV file containing raw text data.
+    output_file : str
+        Path where the cleaned CSV will be saved.
+    text_column : str, optional
+        Name of the text column to clean. Defaults to "tweet_text".
+
+    Returns
+    -------
+    str
+        The path to the cleaned CSV file.
+
+    Raises
+    ------
+    ValueError
+        If the specified text column is not present in the input file.
+    """
+    input_path = resolve_input_path(input_file)
+    output_path = resolve_output_path(output_file)
+
+    df = pd.read_csv(input_path, encoding="utf-8")
+
+    if text_column not in df.columns:
+        raise ValueError(f"Column '{text_column}' not found. Available columns: {list(df.columns)}")
+
+    df[f"{text_column}_clean"] = df[text_column].apply(text_filtering2)
+
+    df.to_csv(output_path, index=False, encoding="utf-8")
+    print(f"Saved cleaned CSV to: {output_path}")
+
+    return output_path
+
 if __name__ == "__main__":
-    process_csv("files/data_train(in).csv", "files/data_train_cleaned.csv", text_column="tweet_text")
+    process_csv2("data_test_fold1(in) (1).csv", "data_test_clean2.csv", text_column="tweet_text")

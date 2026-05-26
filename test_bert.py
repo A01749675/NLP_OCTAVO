@@ -4,7 +4,7 @@ import pandas as pd
 from sklearn.metrics import accuracy_score, precision_recall_fscore_support, roc_auc_score, recall_score
 from transformers import BertTokenizer, BertForSequenceClassification, Trainer
 from torch.utils.data import Dataset
-from text_cleaner import process_csv
+from text_cleaner import process_csv2
 from datetime import datetime
 
 
@@ -21,7 +21,7 @@ class TweetDataset(Dataset):
         item['labels'] = torch.tensor(int(self.labels[idx]))
         return item
 
-process_csv('data_test_fold1(in) (1).csv', 'data_test_clean.csv','tweet_text')
+process_csv2('data_test_fold1(in) (1).csv', 'data_test_clean2.csv','tweet_text')
 
 # Cargar el modelo
 ruta_modelo = "./modelo_beto_final"
@@ -29,7 +29,7 @@ tokenizer_test = BertTokenizer.from_pretrained(ruta_modelo)
 modelo_test = BertForSequenceClassification.from_pretrained(ruta_modelo)
 
 # Carga y preparación de datos (Asegúrate de que el nombre del archivo termine en .csv si aplica)
-df = pd.read_csv("data_test_clean.csv", encoding="utf-8") # Añadí .csv por si acaso
+df = pd.read_csv("files/data_test_clean2.csv", encoding="utf-8") # Añadí .csv por si acaso
 
 X = df["tweet_text_clean"]
 y = df["class"]
