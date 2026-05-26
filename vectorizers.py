@@ -1,3 +1,11 @@
+"""Feature generation utilities for text classification.
+
+This module builds the vectorized representations used by the models,
+including TF-IDF, count-based n-grams, Word2Vec embeddings, and combined
+feature sets. It also exposes ``process_csv`` as the entry point for turning
+cleaned CSV files into model-ready feature files.
+"""
+
 import pandas as pd
 import numpy as np
 from sklearn.feature_extraction.text import TfidfVectorizer, CountVectorizer

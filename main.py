@@ -1,3 +1,11 @@
+"""Training and experimentation pipeline for the NLP project.
+
+This module coordinates model selection, dataset vectorization, training,
+model persistence, and experiment reporting for the classifier workflows.
+It exposes helpers for running KNN sweeps and for training and saving
+individual models.
+"""
+
 from sklearn.model_selection import train_test_split
 
 from paths import resolve_model_path, resolve_output_path

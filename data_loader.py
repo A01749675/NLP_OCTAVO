@@ -1,21 +1,35 @@
+"""Utilities for loading and preparing vectorized datasets.
+
+This module reads CSV files produced by the vectorization pipeline,
+validates the expected label column, and returns a feature matrix together
+with the corresponding target labels.
+"""
+
 import pandas as pd
 
 from paths import resolve_input_path
 
 
 def get_data(vectorized_file):
-    """
-    Loads a vectorized dataset and separates features from labels.
+    """Load a vectorized CSV file and split it into features and labels.
 
     Parameters
     ----------
-    vectorized_file : str
-        Path to a CSV file that contains the vectorized features and a "class" column.
+    vectorized_file : str | pathlib.Path
+        Path to a CSV file containing the vectorized features and a ``class``
+        column. Relative paths are resolved through :func:`paths.resolve_input_path`.
 
     Returns
     -------
     tuple[pandas.DataFrame, pandas.Series]
-        Feature matrix X and label vector y.
+        A tuple containing the numeric feature matrix ``X`` and the label series
+        ``y``.
+
+    Raises
+    ------
+    ValueError
+        If the input file does not contain a ``class`` column or if no numeric
+        feature columns are available after cleaning.
     """
     df = pd.read_csv(resolve_input_path(vectorized_file), encoding="utf-8")
 

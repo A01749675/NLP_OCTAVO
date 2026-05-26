@@ -1,3 +1,12 @@
+"""Model validation pipeline for NLP classifiers.
+
+This module loads trained model artifacts, cleans and vectorizes the test
+dataset, aligns the feature columns with the ones used during training, and
+computes evaluation metrics for each model.
+
+The main entry point is ``run_model_validation()``, which writes a CSV report
+to the configured output path.
+"""
 from text_cleaner import *
 import os
 import joblib
