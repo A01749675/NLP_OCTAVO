@@ -1,18 +1,18 @@
 ==================================================
 REPORTE DE EVALUACIÓN - BETO
-Fecha y Hora: 2026-05-25 17:34:28
+Fecha y Hora: 2026-05-27 18:46:13
 ==================================================
 
-eval_loss                     : 0.3075
-eval_accuracy                 : 0.8644
-eval_f1                       : 0.8792
-eval_precision                : 0.8409
-eval_recall                   : 0.9212
-eval_specificity              : 0.7990
-eval_auc                      : 0.9543
-eval_runtime                  : 2.4917
-eval_samples_per_second       : 180.599
-eval_steps_per_second         : 6.02
+eval_loss                     : 0.2742
+eval_accuracy                 : 0.8889
+eval_f1                       : 0.8992
+eval_precision                : 0.8745
+eval_recall                   : 0.9253
+eval_specificity              : 0.8469
+eval_auc                      : 0.9601
+eval_runtime                  : 1.4067
+eval_samples_per_second       : 319.896
+eval_steps_per_second         : 10.663
 epoch                         : 4.0000
 
 ==================================================

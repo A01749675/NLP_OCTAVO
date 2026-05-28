@@ -223,6 +223,9 @@ def train_and_plot(
         - "tfidf"
         - "ngrams"
         - "all"
+        - "word2vec"
+        - "beto"
+        - "beto_finetuned"
 
     model_name : str
         Model to train. Available values:
@@ -487,6 +490,18 @@ def run_experiments():
         {
             "target":"beto",
             "model_name":"lr"
+        },
+        {
+            "target":"beto_finetuned",
+            "model_name":"knn"
+        },
+        {
+            "target":"beto_finetuned",
+            "model_name":"rf"
+        },
+        {
+            "target":"beto_finetuned",
+            "model_name":"lr"
         }
     ]
 
@@ -494,7 +509,11 @@ def run_experiments():
     
 
     for experiment in experiments:
-        input_file = "files/data_train_cleaned.csv" if experiment["target"]!='beto' else 'files/data_train_cleaned2.csv'
+        input_file = (
+            "files/data_train_cleaned2.csv"
+            if experiment["target"] in ["beto", "beto_finetuned"]
+            else "files/data_train_cleaned.csv"
+        )
     
         print("\n" + "=" * 60)
         print(
@@ -537,7 +556,15 @@ if __name__ == "__main__":
     #         random_state=42
     #     )
     results = run_experiments()
-    print(results)
+    # print(results)
     
+    # model, results = train_and_plot(
+    #     input_file="files/data_train_cleaned2.csv",
+    #     target='beto_finetuned',
+    #     model_name='knn',
+    #     random_state=42
+    # )
+    # results = run_experiments()
+    print(results)
     # results_knn = test_knn_model()
     # print(results_knn)

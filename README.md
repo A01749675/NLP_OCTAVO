@@ -42,6 +42,8 @@
 - `all`
 - `tfidf_bigrams`
 - `tfidf_trigrams`
+- `beto`
+- `beto_finetuned`
 
 The combined TF-IDF variants currently use these settings:
 - `tfidf_bigrams`: TF-IDF range `(1, 2)` + count range `(2, 2)`
@@ -90,7 +92,7 @@ The combined TF-IDF variants currently use these settings:
 
 ### Model artifacts
 - `WORD2VEC.model` -> cached Word2Vec model used by `word2vec_vectorize()`
-- `word2vecText.txt` -> auxiliary domain text used for Word2Vec training
+- `files/word2vecText.txt` -> auxiliary domain text used for Word2Vec training
 
 ## Requirements
 
@@ -101,6 +103,18 @@ pip install -r requirements.txt
 ```
 
 > `text_cleaner.py` downloads NLTK resources at import time and expects the Spanish spaCy model `es_core_news_sm` to be available.
+
+> `main_bert.py` and `test_bert.py` require Hugging Face Hub authentication if they need to download a model/tokenizer from the hub. Run `huggingface-cli login` with a valid Hugging Face token before using these scripts.
+>
+> The `beto_finetuned` target uses the locally saved fine-tuned BETO model in `modelo_beto_final`. If that directory is missing, the function will raise an error instead of falling back to base BETO.
+>
+> To check whether CUDA is available for GPU execution, run:
+>
+> ```bash
+> python -c "import torch; print(torch.cuda.is_available())"
+> ```
+>
+> If CUDA is available, `True` is returned; otherwise it defaults to CPU.
 
 ## Usage
 

@@ -21,7 +21,7 @@ class TweetDataset(Dataset):
         item['labels'] = torch.tensor(int(self.labels[idx]))
         return item
 
-process_csv2('data_test_fold1(in) (1).csv', 'data_test_clean2.csv','tweet_text')
+process_csv2('data_test_fold1(in).csv', 'data_test_clean2.csv','tweet_text')
 
 # Cargar el modelo
 ruta_modelo = "./modelo_beto_final"

@@ -217,4 +217,5 @@ def process_csv2(input_file, output_file, text_column="tweet_text"):
     return output_path
 
 if __name__ == "__main__":
-    process_csv2("data_test_fold1(in) (1).csv", "data_test_clean2.csv", text_column="tweet_text")
+    process_csv2("files/data_test_fold1(in).csv", "data_test_cleaned2.csv", text_column="tweet_text")
+    process_csv2("files/data_train(in).csv", "data_train_cleaned2.csv", text_column="tweet_text")

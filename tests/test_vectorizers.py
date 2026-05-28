@@ -4,6 +4,7 @@ import tempfile
 from unittest.mock import patch
 import pandas as pd
 
+from paths import resolve_model_path
 from vectorizers import (
     tfidf_vectorize,
     ngram_vectorize,
@@ -217,7 +218,7 @@ class TestWord2VecVectorize(unittest.TestCase):
             f.write("anorexia salud dieta peso")
 
         # 2. Manage the hardcoded model file
-        self.model_filename = "WORD2VEC.model"
+        self.model_filename = resolve_model_path("WORD2VEC.model")
         self.model_already_existed = os.path.exists(self.model_filename)
 
         if self.model_already_existed:
@@ -403,7 +404,7 @@ class TestAllVectorize(unittest.TestCase):
         self.output_csv = os.path.join(self.test_dir.name, "test_all.csv")
 
         # Temporarily create the file that Word2Vec needs
-        self.txt_filename = "word2vecText.txt"
+        self.txt_filename = os.path.join("files", "word2vecText.txt")
         self.file_already_existed = os.path.exists(self.txt_filename)
 
         # Backup if the original file already existed
@@ -412,6 +413,7 @@ class TestAllVectorize(unittest.TestCase):
                 self.backup_content = f.read()
 
         # Write a mock text
+        os.makedirs(os.path.dirname(self.txt_filename), exist_ok=True)
         with open(self.txt_filename, "w", encoding="utf-8") as f:
             f.write("anorexia salud dieta peso")
 

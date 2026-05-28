@@ -18,7 +18,7 @@ from sklearn.decomposition import PCA
 
 import os
 
-from paths import resolve_input_path, resolve_output_path
+from paths import resolve_input_path, resolve_output_path, resolve_model_path
 from sklearn.model_selection import train_test_split
 
 # ---------------------------------------------------------
@@ -205,7 +205,7 @@ def word2vec_vectorize(
 
     output_file = resolve_output_path(output_file)
     
-    model_file = "WORD2VEC.model"
+    model_file = resolve_model_path("WORD2VEC.model")
     
     # 1. Prepare Tokenization helper
     def clean_and_tokenize(text):
@@ -225,12 +225,13 @@ def word2vec_vectorize(
     else:
         print("Training new Word2Vec model with expanded context...")
         # Load the base domain document (tweets context)
+        word2vec_text_path = resolve_input_path("word2vecText.txt")
         try:
-            with open("word2vecText.txt", "r", encoding="utf-8") as f:
+            with open(word2vec_text_path, "r", encoding="utf-8") as f:
                 domain_document = f.read()
         except FileNotFoundError:
             domain_document = ""
-            print("Warning: word2vecText.txt not found. Using only tweets for training.")
+            print(f"Warning: {word2vec_text_path} not found. Using only tweets for training.")
 
         # ADDING THE NEW CONTEXT (The Monologue)
         # You can also save this to a file and read it, but adding it here 
@@ -503,41 +504,44 @@ def all_vectorize(
 
 
 
-def beto_vectorize(
+def _run_beto_vectorization(
     texts,
     tweet_ids,
-    classes=None,
-    output_file="data_beto_embeddings.csv",
-    ruta_modelo="./modelo_beto_final",
-    batch_size=32
+    classes,
+    output_file,
+    ruta_modelo,
+    batch_size,
+    require_local
 ):
-    """
-    Convierte una lista de textos en vectores numéricos densos (embeddings) 
-    usando un modelo BETO local, o descargando el modelo base si el local no existe.
-    """
-    
-    # --- NUEVO: SISTEMA DE CARGA CON RESPALDO (FALLBACK) ---
-    modelo_base = "dccuchile/bert-base-spanish-wwm-cased"
-    
-    
-    tokenizer = BertTokenizer.from_pretrained(modelo_base)
-    modelo = BertModel.from_pretrained(modelo_base)
+    """Internal helper to extract BERT embeddings from a model source."""
 
-    # Usar GPU si está disponible
+    if ruta_modelo and os.path.exists(ruta_modelo):
+        model_source = ruta_modelo
+        print(f"Loading BETO from local model: {ruta_modelo}")
+    elif require_local:
+        raise FileNotFoundError(
+            f"Fine-tuned BETO model directory not found: {ruta_modelo}"
+        )
+    else:
+        model_source = "dccuchile/bert-base-spanish-wwm-cased"
+        print(
+            f"Local model not found at {ruta_modelo}. Falling back to base BETO: {model_source}"
+        )
+
+    tokenizer = BertTokenizer.from_pretrained(model_source)
+    modelo = BertModel.from_pretrained(model_source)
+
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print(f"Procesando con: {device}")
-    
+
     modelo.to(device)
-    modelo.eval() # Modo evaluación (apaga el dropout)
+    modelo.eval()
 
     todos_los_vectores = []
     print("Extrayendo vectores (embeddings)...")
-    
-    # Procesar en lotes
+
     for i in tqdm(range(0, len(texts), batch_size)):
         lote_textos = texts[i : i + batch_size]
-        
-        # Tokenizar el lote
         inputs = tokenizer(
             lote_textos,
             padding=True,
@@ -546,33 +550,74 @@ def beto_vectorize(
             return_tensors="pt"
         ).to(device)
 
-        # Pasar por el modelo sin calcular gradientes
         with torch.no_grad():
             outputs = modelo(**inputs)
 
-        # Extraer el vector del token [CLS]
         lote_vectores = outputs.last_hidden_state[:, 0, :].cpu().numpy()
         todos_los_vectores.append(lote_vectores)
 
-    # Unir todos los lotes y armar el DataFrame final
     matriz_vectores = np.vstack(todos_los_vectores)
 
     print("Armando el dataset final...")
     columnas_features = [f"beto_feat_{j}" for j in range(matriz_vectores.shape[1])]
     df_output = pd.DataFrame(matriz_vectores, columns=columnas_features)
-
+    print(df_output.head())
     df_output.insert(0, "tweet_id", tweet_ids)
-    
+
     if classes is not None:
         df_output["class"] = classes
+
     output_file = resolve_output_path(output_file)
-    # Guardar en disco
     df_output.to_csv(output_file, index=False, encoding="utf-8")
-    
+
     print(f"¡Listo! Archivo guardado exitosamente en: {output_file}")
     print(f"Forma del dataset: {df_output.shape} (Filas, Columnas)")
 
     return df_output
+
+
+def beto_vectorize(
+    texts,
+    tweet_ids,
+    classes=None,
+    output_file="data_beto_embeddings.csv",
+    ruta_modelo=None,
+    batch_size=32
+):
+    """Generate BETO embeddings using a local model if available, else fallback to base BETO."""
+    return _run_beto_vectorization(
+        texts=texts,
+        tweet_ids=tweet_ids,
+        classes=classes,
+        output_file=output_file,
+        ruta_modelo=ruta_modelo,
+        batch_size=batch_size,
+        require_local=False,
+    )
+
+
+def beto_finetuned_vectorize(
+    texts,
+    tweet_ids,
+    classes=None,
+    output_file="data_beto_finetuned_embeddings.csv",
+    ruta_modelo="./modelo_beto_final",
+    batch_size=32
+):
+    """Generate BETO embeddings using the fine-tuned local BETO model.
+
+    This function will raise a FileNotFoundError if the specified fine-tuned
+    model directory does not exist.
+    """
+    return _run_beto_vectorization(
+        texts=texts,
+        tweet_ids=tweet_ids,
+        classes=classes,
+        output_file=output_file,
+        ruta_modelo=ruta_modelo,
+        batch_size=batch_size,
+        require_local=True,
+    )
 
 # ---------------------------------------------------------
 # PROCESS CSV
@@ -722,12 +767,21 @@ def process_csv(input_file, target, only_train=False, test_size=0.2, random_stat
                 tweet_ids=tweet_ids,
                 classes=classes,
                 output_file=file_name,
+                batch_size=32
+            )
+        case "beto_finetuned":
+            file_name = resolve_output_path("data_beto_finetuned_embeddings.csv")
+            beto_finetuned_vectorize(
+                texts=texts,
+                tweet_ids=tweet_ids,
+                classes=classes,
+                output_file=file_name,
                 ruta_modelo="./modelo_beto_final",
                 batch_size=32
             )
         case _:
             raise ValueError(
-                "Invalid target. Use 'tfidf', 'ngrams', 'bigrams', 'trigrams', 'tfidf_bigrams', 'tfidf_trigrams', 'word2vec', 'beto', or 'all'."
+                "Invalid target. Use 'tfidf', 'ngrams', 'bigrams', 'trigrams', 'tfidf_bigrams', 'tfidf_trigrams', 'word2vec', 'beto', 'beto_finetuned', or 'all'."
             )
 
     return file_name

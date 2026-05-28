@@ -63,7 +63,11 @@ MODELS = [
     
     "knn-beto.pkl",
     "lr-beto.pkl",
-    "rf-beto.pkl"
+    "rf-beto.pkl",
+    
+    "knn-beto_finetuned.pkl",
+    "lr-beto_finetuned.pkl",
+    "rf-beto_finetuned.pkl"
 ]
 
 
