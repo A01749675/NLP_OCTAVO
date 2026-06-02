@@ -42,6 +42,9 @@ Classify the following tweet into exactly one of these classes:
 control
 anorexia
 
+YOU CANNOT RETURN ANYTHING ELSE THAN THE CLASS NAME, DO NOT RETURN ANY EXPLANATION OR ANY OTHER TEXT. 
+YOU CANNOT RETURN ANOTHER CLASS NAME, ONLY ONE OF THE TWO CLASSES.
+
 Return only the class name. Do not explain.
 
 Tweet:
@@ -58,7 +61,7 @@ Tweet:
     elif "control" in prediction:
         return "control"
     else:
-        return "unknown"
+        return "control"
 
 
 def classify_tweet_few_shot(tweet_text, model="gemma2:9b"):
@@ -83,6 +86,11 @@ Here are some examples:
     "Cuando la gente me pregunta, puedo tomar Coca-Cola light? Aquí tenéis la respuesta. Insisto siempre en que desde que existen los alimentos “light” la obesidad en el mundo no ha hecho más que crecer.  only",control
     que le pasa a tu cuerpo cuando no tomas agua |  Carla Diaz TV https://youtu.be/6ROyt9VH4Oo  #agua #tea #té #adelgazar #bebidas  #metabolismo #deshidratacion #hidratacion,control
     "Un revuelto y un pedazo de tomate aliñado.  Si esque para cuidarse solo hay que quererlo., control
+
+YOU CANNOT RETURN ANYTHING ELSE THAN THE CLASS NAME, DO NOT RETURN ANY EXPLANATION OR ANY OTHER TEXT. 
+YOU CANNOT RETURN ANOTHER CLASS NAME, ONLY ONE OF THE TWO CLASSES.
+
+
 Return only the class name. Do not explain.
 
 Tweet:
@@ -99,7 +107,7 @@ Tweet:
     elif "control" in prediction:
         return "control"
     else:
-        return "unknown"
+        return "control"
 
 
 
@@ -158,8 +166,7 @@ def calculate_confusion_matrix(output_file):
 
 def calculate_confusion_metrics(y_true, y_pred, labels=None):
     """
-    Builds confusion matrix metrics for the given true and predicted labels.
-    Returns a dictionary with the matrix, accuracy, precision, recall, f1, and support.
+    Builds confusion matrix metrics and calculates overall global metrics.
     """
     if labels is None:
         labels = sorted(set(y_true) | set(y_pred))
@@ -168,12 +175,10 @@ def calculate_confusion_metrics(y_true, y_pred, labels=None):
     extra_labels = [l for l in sorted(set(y_true) | set(y_pred)) if l not in all_labels]
     all_labels.extend(extra_labels)
 
+    # 1. Calculate Per-Label metrics
     cm = confusion_matrix(y_true, y_pred, labels=all_labels)
     precision, recall, f1_score, support = precision_recall_fscore_support(
-        y_true,
-        y_pred,
-        labels=all_labels,
-        zero_division=0,
+        y_true, y_pred, labels=all_labels, zero_division=0
     )
 
     per_label = {
@@ -186,6 +191,16 @@ def calculate_confusion_metrics(y_true, y_pred, labels=None):
         for i, label in enumerate(all_labels)
     }
 
+    # 2. CALCULATE OVERALL GLOBAL METRICS (Not divided by class)
+    # Macro average treats all classes equally
+    macro_p, macro_r, macro_f1, _ = precision_recall_fscore_support(
+        y_true, y_pred, average="macro", zero_division=0
+    )
+    # Weighted average accounts for class imbalance (support)
+    weighted_p, weighted_r, weighted_f1, _ = precision_recall_fscore_support(
+        y_true, y_pred, average="weighted", zero_division=0
+    )
+
     matrix = pd.DataFrame(
         cm,
         index=[f"real_{label}" for label in all_labels],
@@ -197,6 +212,14 @@ def calculate_confusion_metrics(y_true, y_pred, labels=None):
         "accuracy": float(accuracy_score(y_true, y_pred)),
         "per_label": per_label,
         "labels": all_labels,
+        "overall": {
+            "macro_precision": float(macro_p),
+            "macro_recall": float(macro_r),
+            "macro_f1": float(macro_f1),
+            "weighted_precision": float(weighted_p),
+            "weighted_recall": float(weighted_r),
+            "weighted_f1": float(weighted_f1),
+        }
     }
 
 
@@ -214,11 +237,11 @@ def classify_tweets(df, model="gemma2:9b"):
 
         print(f"Classifying tweet_id: {tweet_id} | real class: {real_class}")
         
-        print(f"Tweet text: {tweet_text}")
+        # print(f"Tweet text: {tweet_text}")
 
         new_class = classify_tweet(tweet_text, model=model)
         new_classes.append(new_class)
-        print(f"Predicted class: {new_class}")
+        # print(f"Predicted class: {new_class}")
 
     result_df = df.copy()
     result_df["new_class"] = new_classes
@@ -243,11 +266,11 @@ def save_results(df, output_file):
 
 if __name__ == "__main__":
     input_file = "data_train(in).csv"
-    output_file = "ollama_predictions.csv"
+    output_file = "llama_32_predictions.csv"
 
     tweets_df = read_tweets(input_file)
 
-    results_df = classify_tweets(tweets_df, model="incept5/llama3.1-claude")
+    results_df = classify_tweets(tweets_df, model="llama3.2:latest")
 
     print(results_df.head())
     save_results(results_df, output_file)
