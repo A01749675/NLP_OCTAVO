@@ -1,0 +1,18 @@
+==================================================
+REPORTE DE EVALUACIÓN - ROBERTUITO FINETUNED
+Fecha y Hora: 2026-06-02 18:20:54
+==================================================
+
+eval_loss                     : 0.3542
+eval_accuracy                 : 0.8983
+eval_f1                       : 0.9088
+eval_precision                : 0.8761
+eval_recall                   : 0.9441
+eval_specificity              : 0.8453
+eval_auc                      : 0.9542
+eval_runtime                  : 1.8312
+eval_samples_per_second       : 327.653
+eval_steps_per_second         : 10.376
+epoch                         : 5.0000
+
+==================================================

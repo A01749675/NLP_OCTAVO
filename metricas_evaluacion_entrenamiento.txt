@@ -1,18 +1,18 @@
 ==================================================
-REPORTE DE EVALUACIÓN - BETO
-Fecha y Hora: 2026-05-27 18:46:13
+REPORTE DE EVALUACIÓN - BETO FINETUNED
+Fecha y Hora: 2026-06-02 17:59:42
 ==================================================
 
-eval_loss                     : 0.2742
-eval_accuracy                 : 0.8889
-eval_f1                       : 0.8992
-eval_precision                : 0.8745
-eval_recall                   : 0.9253
-eval_specificity              : 0.8469
-eval_auc                      : 0.9601
-eval_runtime                  : 1.4067
-eval_samples_per_second       : 319.896
-eval_steps_per_second         : 10.663
+eval_loss                     : 0.2531
+eval_accuracy                 : 0.8956
+eval_f1                       : 0.9043
+eval_precision                : 0.8880
+eval_recall                   : 0.9212
+eval_specificity              : 0.8660
+eval_auc                      : 0.9641
+eval_runtime                  : 1.5183
+eval_samples_per_second       : 296.39
+eval_steps_per_second         : 9.88
 epoch                         : 4.0000
 
 ==================================================

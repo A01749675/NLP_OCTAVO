@@ -17,9 +17,12 @@ from models.logistic_regression_model import get_model as get_logistic_regressio
 from models.knn_model import get_model as get_knn
 import pandas as pd 
 import joblib
-
+import os
 
 from sklearn.metrics import roc_curve, roc_auc_score
+from paths import resolve_input_path, resolve_model_path, resolve_output_path
+from text_cleaner import text_filtering, text_filtering2
+
 
 from evaluation import (
     evaluate_model,
@@ -34,6 +37,14 @@ from evaluation import (
 )
 
 PLOTS_ACTIVE = False
+INPUT_TEST_FILE = os.path.join("files", "data_test_fold1(in).csv")
+CLEANED_TEST_FILE = os.path.join("files", "cleaned_data_test_fold1(in).csv")
+CLEANED_TEST_FILE_2 = os.path.join("files", "cleaned_data_test_fold1(in)2.csv")
+OUTPUT_RESULTS_FILE = resolve_output_path("model_evaluation_results.csv")
+
+TEXT_COLUMN = "tweet_text"
+LABEL_COLUMN = "class"
+
 
 def select_model(model_name, random_state=42):
     """
@@ -502,6 +513,30 @@ def run_experiments():
         {
             "target":"beto_finetuned",
             "model_name":"lr"
+        },
+        {
+            "target":"robertuito",
+            "model_name":"knn"
+        },
+        {
+            "target":"robertuito",
+            "model_name":"rf"
+        },
+        {
+            "target":"robertuito",
+            "model_name":"lr"
+        },
+        {
+            "target":"robertuito_finetuned",
+            "model_name":"knn"
+        },
+        {
+            "target":"robertuito_finetuned",
+            "model_name":"rf"
+        },
+        {
+            "target":"robertuito_finetuned",
+            "model_name":"lr"
         }
     ]
 
@@ -541,7 +576,196 @@ def run_experiments():
     return all_results
 
 
+
+
+def run_beto():
+    """
+    Runs multiple experiments using the combinations defined in the methodology.
+
+    One can modify this list to test more combinations.
+
+    Returns
+    -------
+    None
+    """
+
+    experiments = [
+        {
+            "target":"beto",
+            "model_name":"knn"
+        },
+        {
+            "target":"beto",
+            "model_name":"rf"
+        },
+        {
+            "target":"beto",
+            "model_name":"lr"
+        },
+        {
+            "target":"beto_finetuned",
+            "model_name":"knn"
+        },
+        {
+            "target":"beto_finetuned",
+            "model_name":"rf"
+        },
+        {
+            "target":"beto_finetuned",
+            "model_name":"lr"
+        },
+        {
+            "target":"robertuito",
+            "model_name":"knn"
+        },
+        {
+            "target":"robertuito",
+            "model_name":"rf"
+        },
+        {
+            "target":"robertuito",
+            "model_name":"lr"
+        },
+        {
+            "target":"robertuito_finetuned",
+            "model_name":"knn"
+        },
+        {
+            "target":"robertuito_finetuned",
+            "model_name":"rf"
+        },
+        {
+            "target":"robertuito_finetuned",
+            "model_name":"lr"
+        }
+    ]
+
+    all_results = []
+    
+
+    for experiment in experiments:
+        input_file = (
+            "files/data_train_cleaned2.csv"
+            if experiment["target"] in ["beto", "beto_finetuned","robertuito", "robertuito_finetuned"]
+            else "files/data_train_cleaned.csv"
+        )
+    
+        print("\n" + "=" * 60)
+        print(
+            f"Running experiment: {experiment['target']} + {experiment['model_name']}"
+        )
+        print("=" * 60)
+
+        model, results = train_and_plot(
+            input_file=input_file,
+            target=experiment["target"],
+            model_name=experiment["model_name"],
+            random_state=42
+        )
+
+        results_record = {
+            "representation": experiment["target"],
+            "model": experiment["model_name"],
+            **results
+        }
+
+        all_results.append(results_record)
+    df = pd.DataFrame(all_results)
+    df.to_csv(resolve_output_path('beto_experiments.csv'))
+    
+    return all_results
+
+
+
+def clean_data(
+    input_file=INPUT_TEST_FILE,
+    output_file=CLEANED_TEST_FILE,
+    text_column=TEXT_COLUMN
+):
+    """
+    Reads the test CSV, applies text cleaning, and saves a cleaned CSV file.
+    
+    args:
+        input_file (str): Path to the raw test CSV file.
+        output_file (str): Path where the cleaned CSV will be saved.
+        text_column (str): Name of the column containing the text to clean.
+        
+    returns:
+        str: Path to the cleaned CSV file.
+        
+    """
+
+    input_path = resolve_input_path(input_file)
+    output_path = resolve_output_path(output_file)
+
+    df = pd.read_csv(input_path, encoding="utf-8")
+
+    if text_column not in df.columns:
+        raise ValueError(
+            f"Column '{text_column}' was not found. Available columns: {list(df.columns)}"
+        )
+
+    df["tweet_text_clean"] = df[text_column].fillna("").apply(text_filtering)
+
+    if LABEL_COLUMN not in df.columns:
+        raise ValueError(
+            f"Target column '{LABEL_COLUMN}' was not found. Available columns: {list(df.columns)}"
+        )
+
+    df.to_csv(output_path, index=False, encoding="utf-8")
+
+    print(f"Cleaned data saved to {output_path}")
+
+    return output_path
+
+
+
+def clean_data_2(
+    input_file=INPUT_TEST_FILE,
+    output_file=CLEANED_TEST_FILE_2,
+    text_column=TEXT_COLUMN
+):
+    """
+    Reads the test CSV, applies text cleaning, and saves a cleaned CSV file.
+    
+    args:
+        input_file (str): Path to the raw test CSV file.
+        output_file (str): Path where the cleaned CSV will be saved.
+        text_column (str): Name of the column containing the text to clean.
+        
+    returns:
+        str: Path to the cleaned CSV file.
+        
+    """
+
+    input_path = resolve_input_path(input_file)
+    output_path = resolve_output_path(output_file)
+
+    df = pd.read_csv(input_path, encoding="utf-8")
+
+    if text_column not in df.columns:
+        raise ValueError(
+            f"Column '{text_column}' was not found. Available columns: {list(df.columns)}"
+        )
+
+    df["tweet_text_clean"] = df[text_column].fillna("").apply(text_filtering2)
+
+    if LABEL_COLUMN not in df.columns:
+        raise ValueError(
+            f"Target column '{LABEL_COLUMN}' was not found. Available columns: {list(df.columns)}"
+        )
+
+    df.to_csv(output_path, index=False, encoding="utf-8")
+
+    print(f"Cleaned data saved to {output_path}")
+
+    return output_path
+
+
 if __name__ == "__main__":
+    
+    clean_data()
+    clean_data_2()
     # Run only one experiment
     # train_and_plot(
     #     input_file="data_train_cleaned.csv",
@@ -555,6 +779,7 @@ if __name__ == "__main__":
     #         model_name='knn',
     #         random_state=42
     #     )
+    # results = run_experiments()
     results = run_experiments()
     # print(results)
     

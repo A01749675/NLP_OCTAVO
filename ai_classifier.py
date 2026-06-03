@@ -1,3 +1,12 @@
+
+
+"""Módulo para clasificar tweets usando un modelo de Ollama.
+
+Este módulo lee un CSV con tweets y sus etiquetas reales, envía cada tweet a
+un modelo de Ollama para obtener una predicción de clase, y contiene utilidades
+para evaluar el rendimiento de la clasificación.
+"""
+
 import ollama
 import pandas as pd
 from paths import resolve_input_path, resolve_output_path
@@ -86,16 +95,54 @@ Here are some examples:
     "Cuando la gente me pregunta, puedo tomar Coca-Cola light? Aquí tenéis la respuesta. Insisto siempre en que desde que existen los alimentos “light” la obesidad en el mundo no ha hecho más que crecer.  only",control
     que le pasa a tu cuerpo cuando no tomas agua |  Carla Diaz TV https://youtu.be/6ROyt9VH4Oo  #agua #tea #té #adelgazar #bebidas  #metabolismo #deshidratacion #hidratacion,control
     "Un revuelto y un pedazo de tomate aliñado.  Si esque para cuidarse solo hay que quererlo., control
+    #runhappy",control
+    "Nada mejor que correr 5km  y haser unas series de sentadillas para quitar la gripe y la temperatura.#ejercicio #calisthenics  #noche #SIGUEMEYTESIGO",control
+    "Un buen desayuno y listo para un día intenso!, control 
+    Una opción saludable y muy nutritiva para media tarde: tostada de #aguacate  #HealthyFood,control
+    "Todavía piensas que comer sano es aburrido? Hoy para comer, una deliciosa berenjena a la parmesana!!  ing   #vidasana #habitosaludables #cadiz #sindietas #perderpeso",control
+    "Yo soy mía, y estoy mejorando para no serlo más, y me pone mal q los demás crean esto de una forma de viví o sobrevivir, no lo es una puta mentira. Lo q están haciendo no es evitar engordar sino que están evitando vivír",anorexia
+    "No se porque, pero me siento igual o peor a cuando empece en esto me veo igual de vaca #fat #thinspo #thinspiration #gorda #proana  #anorexic #bulimic",anorexia
+    Solo Deseo estar #Delgada Solo Eso,anorexia
 
 YOU CANNOT RETURN ANYTHING ELSE THAN THE CLASS NAME, DO NOT RETURN ANY EXPLANATION OR ANY OTHER TEXT. 
 YOU CANNOT RETURN ANOTHER CLASS NAME, ONLY ONE OF THE TWO CLASSES.
-
 
 Return only the class name. Do not explain.
 
 Tweet:
 {tweet_text}
 """,
+            }
+        ],
+    )
+
+    prediction = response["message"]["content"].strip().lower()
+
+    if "anorexia" in prediction:
+        return "anorexia"
+    elif "control" in prediction:
+        return "control"
+    else:
+        return "control"
+
+
+def classify_chain_of_thought(tweet_text, model="gemma2:9b"):
+    """
+    Classifies the tweet using a chain of thought prompting approach.
+    """
+    response = ollama.chat(
+        model=model,
+        messages=[
+            {
+                "role": "user",
+                "content": f"""Classify the following tweet into exactly one of these classes:
+control
+anorexia
+Here are some examples:
+    Cheesecake saludable sin azúcar y sin lactosa  con mermerlada casera de moras,control
+    Mañana empiezo otra vez!,anorexia
+    
+"""
             }
         ],
     )
@@ -217,7 +264,7 @@ def calculate_confusion_metrics(y_true, y_pred, labels=None):
     }
 
 
-def classify_tweets(df, model="gemma2:9b"):
+def classify_tweets(df, model="gemma2:9b",few_shot=False):
     """
     Classifies every tweet using the provided model and adds the Ollama prediction
     as a new column called new_class.
@@ -232,8 +279,10 @@ def classify_tweets(df, model="gemma2:9b"):
         print(f"Classifying tweet_id: {tweet_id} | real class: {real_class}")
         
         # print(f"Tweet text: {tweet_text}")
-
-        new_class = classify_tweet(tweet_text, model=model)
+        if few_shot:
+            new_class = classify_tweet_few_shot(tweet_text, model=model)
+        else:
+            new_class = classify_tweet(tweet_text, model=model)
         new_classes.append(new_class)
         # print(f"Predicted class: {new_class}")
 
@@ -264,7 +313,7 @@ if __name__ == "__main__":
 
     tweets_df = read_tweets(input_file)
 
-    results_df = classify_tweets(tweets_df, model="llama3.2:latest")
+    results_df = classify_tweets(tweets_df, model="llama3.2:latest", few_shot=True)
 
     print(results_df.head())
     save_results(results_df, output_file)

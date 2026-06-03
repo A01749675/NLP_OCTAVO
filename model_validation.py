@@ -24,10 +24,20 @@ from data_loader import get_data
 # Configuration
 # ---------------------------------------------------------
 #
-INPUT_TEST_FILE = os.path.join("files", "data_test_fold1(in).csv")
-CLEANED_TEST_FILE = os.path.join("files", "cleaned_data_test_fold1(in).csv")
-CLEANED_TEST_FILE_2 = os.path.join("files", "cleaned_data_test_fold1(in)2.csv")
-OUTPUT_RESULTS_FILE = resolve_output_path("model_evaluation_results.csv")
+
+PHASE = False
+
+if PHASE:
+
+    INPUT_TEST_FILE = os.path.join("files", "data_test_fold1(in).csv")
+    CLEANED_TEST_FILE = os.path.join("files", "cleaned_data_test_fold1(in).csv")
+    CLEANED_TEST_FILE_2 = os.path.join("files", "cleaned_data_test_fold1(in)2.csv")
+    OUTPUT_RESULTS_FILE = resolve_output_path("model_evaluation_results2.csv")
+else:
+    INPUT_TEST_FILE = os.path.join("files", "data_test_fold2(in).csv")
+    CLEANED_TEST_FILE = os.path.join("files", "cleaned_data_test_fold2(in).csv")
+    CLEANED_TEST_FILE_2 = os.path.join("files", "cleaned_data_test_fold2(in)2.csv")
+    OUTPUT_RESULTS_FILE = resolve_output_path("model_evaluation_results2.csv")
 
 TEXT_COLUMN = "tweet_text"
 LABEL_COLUMN = "class"
@@ -67,7 +77,16 @@ MODELS = [
     
     "knn-beto_finetuned.pkl",
     "lr-beto_finetuned.pkl",
-    "rf-beto_finetuned.pkl"
+    "rf-beto_finetuned.pkl",
+    
+    "knn-robertuito.pkl",
+    "lr-robertuito.pkl",
+    "rf-robertuito.pkl",
+    
+    "knn-robertuito_finetuned.pkl",
+    "lr-robertuito_finetuned.pkl",
+    "rf-robertuito_finetuned.pkl"
+    
 ]
 
 

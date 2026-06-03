@@ -15,7 +15,7 @@ import torch
 from transformers import BertTokenizer, BertModel
 from tqdm import tqdm
 from sklearn.decomposition import PCA
-
+from transformers import BertTokenizer, BertModel, AutoTokenizer, AutoModel
 import os
 
 from paths import resolve_input_path, resolve_output_path, resolve_model_path
@@ -502,8 +502,6 @@ def all_vectorize(
     return all_df
 
 
-
-
 def _run_beto_vectorization(
     texts,
     tweet_ids,
@@ -513,7 +511,7 @@ def _run_beto_vectorization(
     batch_size,
     require_local
 ):
-    """Internal helper to extract BERT embeddings from a model source."""
+    """Internal helper to extract optimized BERT embeddings from a Spanish BETO model."""
 
     if ruta_modelo and os.path.exists(ruta_modelo):
         model_source = ruta_modelo
@@ -523,13 +521,17 @@ def _run_beto_vectorization(
             f"Fine-tuned BETO model directory not found: {ruta_modelo}"
         )
     else:
+        # NOTE: If your data preprocessing fully lowercases the text, 
+        # consider changing this to "dccuchile/bert-base-spanish-wwm-uncased"
         model_source = "dccuchile/bert-base-spanish-wwm-cased"
         print(
             f"Local model not found at {ruta_modelo}. Falling back to base BETO: {model_source}"
         )
 
     tokenizer = BertTokenizer.from_pretrained(model_source)
-    modelo = BertModel.from_pretrained(model_source)
+    
+    # IMPROVEMENT 1: Enable output_hidden_states to capture deep semantic features
+    modelo = BertModel.from_pretrained(model_source, output_hidden_states=True)
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print(f"Procesando con: {device}")
@@ -538,7 +540,7 @@ def _run_beto_vectorization(
     modelo.eval()
 
     todos_los_vectores = []
-    print("Extrayendo vectores (embeddings)...")
+    print("Extrayendo vectores optimizados (Last 4 Layers + Mean Pooling)...")
 
     for i in tqdm(range(0, len(texts), batch_size)):
         lote_textos = texts[i : i + batch_size]
@@ -553,7 +555,27 @@ def _run_beto_vectorization(
         with torch.no_grad():
             outputs = modelo(**inputs)
 
-        lote_vectores = outputs.last_hidden_state[:, 0, :].cpu().numpy()
+        # IMPROVEMENT 2: Extract and average the last 4 hidden layers
+        # outputs.hidden_states is a tuple containing the initial embeddings + 12 layers
+        hidden_states = outputs.hidden_states
+        last_four_layers = torch.stack(hidden_states[-4:], dim=0)  # Shape: [4, batch_size, seq_len, 768]
+        layer_averaged = torch.mean(last_four_layers, dim=0)       # Shape: [batch_size, seq_len, 768]
+
+        # IMPROVEMENT 3: Perform Mean Pooling while ignoring padding tokens
+        attention_mask = inputs["attention_mask"].unsqueeze(-1)    # Shape: [batch_size, seq_len, 1]
+        mask_expanded = attention_mask.expand(layer_averaged.size()).float()
+        
+        # Zero out padding token representations
+        masked_embeddings = layer_averaged * mask_expanded
+        
+        # Sum along the sequence length (axis 1)
+        sum_embeddings = torch.sum(masked_embeddings, dim=1)
+        
+        # Count actual valid tokens, clamp to prevent division by zero on empty inputs
+        sum_mask = torch.clamp(mask_expanded.sum(dim=1), min=1e-9)
+        
+        # Calculate final mean vectors
+        lote_vectores = (sum_embeddings / sum_mask).cpu().numpy()
         todos_los_vectores.append(lote_vectores)
 
     matriz_vectores = np.vstack(todos_los_vectores)
@@ -561,7 +583,6 @@ def _run_beto_vectorization(
     print("Armando el dataset final...")
     columnas_features = [f"beto_feat_{j}" for j in range(matriz_vectores.shape[1])]
     df_output = pd.DataFrame(matriz_vectores, columns=columnas_features)
-    print(df_output.head())
     df_output.insert(0, "tweet_id", tweet_ids)
 
     if classes is not None:
@@ -618,6 +639,82 @@ def beto_finetuned_vectorize(
         batch_size=batch_size,
         require_local=True,
     )
+
+# =====================================================================
+# NUEVO: ENRUTAMIENTO Y VECTORIZADORES DE ROBERTUITO (ROBERTA)
+# =====================================================================
+def _run_robertuito_vectorization(texts, tweet_ids, classes, output_file, ruta_modelo, batch_size, require_local):
+    """Extractor de embeddings optimizado usando Mean Pooling para RoBERTuito."""
+    if ruta_modelo and os.path.exists(ruta_modelo):
+        model_source = ruta_modelo
+        print(f"Cargando RoBERTuito local/finedtuned desde: {ruta_modelo}")
+    elif require_local:
+        raise FileNotFoundError(f"No se encontró el directorio del modelo ajustado: {ruta_modelo}")
+    else:
+        model_source = "pysentimiento/robertuito-sentiment-analysis"
+        print(f"Cargando RoBERTuito Base desde Hugging Face: {model_source}")
+
+    # RoBERTuito requiere Auto classes obligatoriamente en vez de Bert classes
+    tokenizer = AutoTokenizer.from_pretrained(model_source)
+    modelo = AutoModel.from_pretrained(model_source)
+
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    modelo.to(device)
+    modelo.eval()
+
+    todos_los_vectores = []
+    print("Extrayendo embeddings estáticos con Mean Pooling...")
+
+    for i in tqdm(range(0, len(texts), batch_size)):
+        lote_textos = texts[i : i + batch_size]
+        inputs = tokenizer(
+            lote_textos, 
+            padding=True, 
+            truncation=True, 
+            max_length=128, 
+            return_tensors="pt"
+        ).to(device)
+
+        with torch.no_grad():
+            outputs = modelo(**inputs)
+        
+        # Implementación de Mean Pooling (Ignora tokens de padding para evitar ruido geométrico)
+        token_embeddings = outputs.last_hidden_state
+        attention_mask = inputs["attention_mask"].unsqueeze(-1)
+        mask_expanded = attention_mask.expand(token_embeddings.size()).float()
+        
+        sum_embeddings = torch.sum(token_embeddings * mask_expanded, 1)
+        sum_mask = torch.clamp(mask_expanded.sum(1), min=1e-9)
+        
+        lote_vectores = (sum_embeddings / sum_mask).cpu().numpy()
+        todos_los_vectores.append(lote_vectores)
+
+    matriz_vectores = np.vstack(todos_los_vectores)
+
+    print("Construyendo dataframe estructurado para la tubería...")
+    columnas_features = [f"robertuito_feat_{j}" for j in range(matriz_vectores.shape[1])]
+    df_output = pd.DataFrame(matriz_vectores, columns=columnas_features)
+    
+    if tweet_ids is not None:
+        df_output.insert(0, "tweet_id", tweet_ids)
+    if classes is not None:
+        df_output["class"] = classes
+
+    output_file = resolve_output_path(output_file)
+    df_output.to_csv(output_file, index=False, encoding="utf-8")
+    print(f"Dataset guardado en: {output_file} | Forma: {df_output.shape}")
+    
+    return df_output
+
+def robertuito_vectorize(texts, tweet_ids, classes=None, output_file="data_robertuito_embeddings.csv", ruta_modelo=None, batch_size=32):
+    return _run_robertuito_vectorization(texts, tweet_ids, classes, output_file, ruta_modelo, batch_size, require_local=False)
+
+def robertuito_finetuned_vectorize(texts, tweet_ids, classes=None, output_file="data_robertuito_finetuned_embeddings.csv", ruta_modelo="./modelo_robertuito_final", batch_size=32):
+    return _run_robertuito_vectorization(texts, tweet_ids, classes, output_file, ruta_modelo, batch_size, require_local=True)
+
+
+
+
 
 # ---------------------------------------------------------
 # PROCESS CSV
@@ -779,6 +876,13 @@ def process_csv(input_file, target, only_train=False, test_size=0.2, random_stat
                 ruta_modelo="./modelo_beto_final",
                 batch_size=32
             )
+        # --- NUEVOS CASOS INTEGRADOS ---
+        case "robertuito":
+            file_name = resolve_output_path("data_robertuito_embeddings.csv")
+            robertuito_vectorize(texts=texts, tweet_ids=tweet_ids, classes=classes, output_file=file_name)
+        case "robertuito_finetuned":
+            file_name = resolve_output_path("data_robertuito_finetuned_embeddings.csv")
+            robertuito_finetuned_vectorize(texts=texts, tweet_ids=tweet_ids, classes=classes, output_file=file_name, ruta_modelo="./modelo_robertuito_final")
         case _:
             raise ValueError(
                 "Invalid target. Use 'tfidf', 'ngrams', 'bigrams', 'trigrams', 'tfidf_bigrams', 'tfidf_trigrams', 'word2vec', 'beto', 'beto_finetuned', or 'all'."

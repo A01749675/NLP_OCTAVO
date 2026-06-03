@@ -3,14 +3,14 @@ import numpy as np
 import pandas as pd
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import accuracy_score, precision_recall_fscore_support, roc_auc_score, recall_score
-from transformers import BertTokenizer, BertForSequenceClassification
+from transformers import AutoTokenizer, AutoModelForSequenceClassification
 from transformers import TrainingArguments, Trainer, EarlyStoppingCallback
 from torch.utils.data import Dataset
 from datetime import datetime
 import os
 
 # =====================================================================
-# 1. Definición de la clase Dataset
+# 1. Definición de la clase Dataset (Igual para PyTorch)
 # =====================================================================
 class TweetDataset(Dataset):
     def __init__(self, encodings, labels):
@@ -26,9 +26,11 @@ class TweetDataset(Dataset):
         return item
 
 # =====================================================================
-# 2. Cargar Tokenizer
+# 2. Cargar Tokenizer de RoBERTuito (Usa AutoTokenizer para RoBERTa)
 # =====================================================================
-tokenizer = BertTokenizer.from_pretrained("dccuchile/bert-base-spanish-wwm-cased")
+# robertuito-sentiment-analysis maneja emojis y jerga de Twitter nativamente
+nombre_modelo = "pysentimiento/robertuito-sentiment-analysis"
+tokenizer = AutoTokenizer.from_pretrained(nombre_modelo)
 
 # =====================================================================
 # 3. Carga y preparación de datos
@@ -38,7 +40,7 @@ df = pd.read_csv("files/data_train_cleaned2.csv", encoding="utf-8")
 if df.empty:
     raise ValueError("El archivo CSV está vacío.")
 
-# Limpieza de clases y filtrado preventivo de NaNs para evitar colapsos en PyTorch
+# Limpieza preventiva de clases para evitar NaNs en las etiquetas
 df["class_clean"] = df["class"].astype(str).str.strip().str.lower()
 
 mapeo_clases = {
@@ -46,48 +48,51 @@ mapeo_clases = {
     "anorexia": 1
 }
 
-# Identificar y remover registros con etiquetas inválidas antes de tokenizar
+# Filtrar posibles registros con etiquetas inválidas
 clases_validas = df["class_clean"].isin(mapeo_clases.keys())
 if not clases_validas.all():
     invalid_count = (~clases_validas).sum()
     print(f"¡ADVERTENCIA! Filtrando {invalid_count} registros con etiquetas desconocidas.")
     df = df[clases_validas].copy()
 
-# Mapear las clases a IDs numéricos estables
 df["label_id"] = df["class_clean"].map(mapeo_clases)
 
 X = df["tweet_text_clean"].fillna("").astype(str).tolist()
 y = df["label_id"].tolist()
 
-print(f"Datos cargados y limpiados correctamente. Total muestras válidas: {len(X)}")
+print(f"Datos cargados correctamente para RoBERTuito. Total muestras válidas: {len(X)}")
 
 # --- Split de Entrenamiento / Validación (70/30) ---
 X_train, X_test, y_train, y_test = train_test_split(
-    X, y, test_size=0.3, random_state=42, stratify=y
+    X, y, test_size=0.4, random_state=42, stratify=y
 )
 
-# Tokenizar los textos de forma independiente
+# Tokenizar de forma independiente para RoBERTuito (max_length=128 es ideal para tweets)
 train_encodings = tokenizer(X_train, padding=True, truncation=True, max_length=128)
 test_encodings = tokenizer(X_test, padding=True, truncation=True, max_length=128)
 
-# Crear los objetos Dataset para alimentar a PyTorch
 train_dataset = TweetDataset(train_encodings, y_train)
 test_dataset = TweetDataset(test_encodings, y_test)
 
 # =====================================================================
-# 5. Cargar BETO preparado para clasificación de secuencias
+# 5. Cargar RoBERTuito preparado para Clasificación Binaria
 # =====================================================================
 num_clases = 2 
-modelo = BertForSequenceClassification.from_pretrained(
-    "dccuchile/bert-base-spanish-wwm-cased", 
-    num_labels=num_clases
+
+# ignore_mismatched_sizes=True es indispensable aquí.
+# Esto le dice al script: "Borra la cabeza original de 3 clases (positivo/negativo/neutral) 
+# de análisis de sentimiento y monta una nueva cabeza limpia para nuestras 2 clases".
+modelo = AutoModelForSequenceClassification.from_pretrained(
+    nombre_modelo, 
+    num_labels=num_clases,
+    ignore_mismatched_sizes=True 
 )
 
-# Dejamos todas las capas descongeladas para que puedan adaptarse de forma suave.
-for name, param in modelo.bert.named_parameters():
+# Dejamos todas las capas abiertas para el ajuste fino inicial
+for name, param in modelo.roberta.named_parameters():
     param.requires_grad = True
 
-print("Todas las capas están activas para el ajuste fino. Optimizando balance...")
+print("Estructura de RoBERTuito inicializada y adaptada para 2 clases.")
 
 # =====================================================================
 # 6. Definir métricas de evaluación
@@ -97,14 +102,14 @@ def compute_metrics(pred):
     logits = pred.predictions
     preds = logits.argmax(-1)
     
-    # Softmax para obtener las probabilidades de la clase positiva (anorexia)
+    # Softmax para probabilidades de la clase positiva (anorexia)
     probs = torch.softmax(torch.tensor(logits), dim=-1)[:, 1].numpy()
     auc = roc_auc_score(labels, probs)
     
-    # Specificity (Recall de la clase control)
+    # Specificity
     specificity = recall_score(labels, preds, pos_label=0)
     
-    # Métricas estándar binarias
+    # Métricas estándar
     precision, recall, f1, _ = precision_recall_fscore_support(labels, preds, average='binary', zero_division=0)
     acc = accuracy_score(labels, preds)
     
@@ -118,28 +123,28 @@ def compute_metrics(pred):
     }
 
 # =====================================================================
-# 7. Definir Hiperparámetros BALANCEADOS (Evita Underfitting y Overfitting)
+# 7. Definir Hiperparámetros Optimizados para Muestras Pequeñas (3,000 tweets)
 # =====================================================================
 training_args = TrainingArguments(
-    output_dir='./resultados_beto',          
-    num_train_epochs=8,                        # 4 epochs dan margen al Early Stopping para decidir el punto óptimo
-    per_device_train_batch_size=16,            # Batch size de 16 para actualizaciones frecuentes de gradiente
+    output_dir='./resultados_robertuito',          
+    num_train_epochs=5,                        # 5 epochs le da suficiente espacio al Early Stopping
+    per_device_train_batch_size=16,            # Batch de 16 para mayor frecuencia de actualización en datos chicos
     per_device_eval_batch_size=32,           
-    learning_rate=2e-5,                        # El "sweet spot" estándar para modelos BERT-base
-    weight_decay=0.01,                         # Regularización estándar balanceada
-    warmup_ratio=0.1,                          # Calentamiento lineal inicial del 10% de los pasos
-    lr_scheduler_type="cosine",                # Decaimiento en coseno para suavizar el entrenamiento al final
+    learning_rate=3e-5,                        # RoBERTa se beneficia de un LR ligeramente más alto que BERT base
+    weight_decay=0.05,                         # Regularización moderada para evitar memorizar palabras clave ruidosas
+    warmup_ratio=0.15,                         # Calentamiento inicial extendido al 15% de los pasos
+    lr_scheduler_type="linear",                # Decaimiento lineal estable para pocos steps por epoch
     eval_strategy="epoch",                   
     save_strategy="epoch",                    
-    load_best_model_at_end=True,               # Revierte al mejor checkpoint según la métrica asignada abajo
-    metric_for_best_model="f1",                # Selecciona la mejor versión basándose en el F1-Score general
+    load_best_model_at_end=True,               # Revierte automáticamente al checkpoint óptimo
+    metric_for_best_model="f1",                # Buscamos maximizar el F1-Score macro/general
     greater_is_better=True,
-    save_total_limit=1,                        # Borra checkpoints anteriores para ahorrar espacio en disco (~440MB c/u)
+    save_total_limit=1,                        # Mantiene solo el mejor modelo para ahorrar espacio
     logging_steps=10,
 )
 
 # =====================================================================
-# 8. Inicializar el Trainer con Paciencia Balanceada
+# 8. Inicializar el Trainer con Parada Temprana (Early Stopping)
 # =====================================================================
 trainer = Trainer(
     model=modelo,
@@ -147,11 +152,10 @@ trainer = Trainer(
     train_dataset=train_dataset,
     eval_dataset=test_dataset,
     compute_metrics=compute_metrics,
-    # Paciencia de 2 epochs para permitirle estabilizarse si una epoch oscila por ruido
-    callbacks=[EarlyStoppingCallback(early_stopping_patience=2)]
+    callbacks=[EarlyStoppingCallback(early_stopping_patience=2)] # Frena si hila 2 epochs empeorando
 )
 
-print("Iniciando el entrenamiento...")
+print("Iniciando el entrenamiento de RoBERTuito...")
 
 # =====================================================================
 # 9. Entrenar el modelo
@@ -159,28 +163,28 @@ print("Iniciando el entrenamiento...")
 trainer.train()
 
 # =====================================================================
-# 10. Evaluar en el conjunto de prueba (Regresará el mejor modelo guardado)
+# 10. Evaluar en el conjunto de validación
 # =====================================================================
-print("Evaluando el mejor modelo encontrado...")
+print("Evaluando el mejor modelo encontrado de RoBERTuito...")
 resultados = trainer.evaluate()
 print("Resultados de la evaluación:", resultados)
 
 # =====================================================================
-# 11. Guardar el mejor modelo definitivo
+# 11. Guardar el mejor modelo definitivo y el tokenizador
 # =====================================================================
-ruta_guardado = "./modelo_beto_final"
+ruta_guardado = "./modelo_robertuito_final"
 print(f"Guardando el modelo definitivo y el tokenizador en: {ruta_guardado}")
 
 trainer.save_model(ruta_guardado)
 tokenizer.save_pretrained(ruta_guardado)
 
 # --- GUARDAR MÉTRICAS EN UN TXT ---
-nombre_archivo = "metricas_evaluacion_entrenamiento.txt"
+nombre_archivo = "metricas_evaluacion_robertuito.txt"
 ahora = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
 with open(nombre_archivo, "w", encoding="utf-8") as f:
     f.write("==================================================\n")
-    f.write(f"REPORTE DE EVALUACIÓN - BETO FINETUNED\n")
+    f.write(f"REPORTE DE EVALUACIÓN - ROBERTUITO FINETUNED\n")
     f.write(f"Fecha y Hora: {ahora}\n")
     f.write("==================================================\n\n")
     
