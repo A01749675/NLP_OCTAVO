@@ -18,30 +18,11 @@ The active flow consists of two main branches:
 1. Traditional supervised learning pipeline (`main.py`)
 2. AI classifier / prompt-based inference flow (`ai_classifier.py`)
 
-### Mermaid execution flow
+The traditional supervised workflow starts with raw CSV input, which is cleaned by `text_cleaner.py`. The cleaned dataset is then vectorized by `vectorizers.py` through `process_csv()`, producing feature CSVs for TF-IDF, n-grams, Word2Vec, or transformer-ready representations. `main.py` loads these vectorized files, trains the selected model, saves the artifact, and uses `evaluation.py` for metrics and plotting. After training, `model_validation.py` can load the saved artifacts, align feature columns, and validate performance on cleaned test data.
 
-```mermaid
-flowchart TD
-    A[Raw CSV input] --> B[text_cleaner.py]
-    B --> C[Cleaned CSV output]
-    C --> D[vectorizers.py / process_csv()]
-    D --> E[Vectorized dataset CSVs]
-    E --> F[main.py train_and_plot()]
-    F --> G[Saved ML artifacts (.pkl)]
-    F --> H[evaluation.py metrics & plots]
-    G --> I[model_validation.py]
-    I --> J[Validation report CSV]
+The AI classifier branch is separate from the classical training flow. `ai_classifier.py` reads tweets, sends them to Ollama using strict prompt templates, and evaluates predictions against the same classification labels. This branch is intended for prompt-based inference rather than conventional model training.
 
-    subgraph AI Classifier
-      K[ai_classifier.py] --> L[Ollama / LLM prompt classification]
-      L --> M[Prediction CSV + metrics]
-    end
-
-    subgraph Transformer Fine-tuning
-      N[main_bert.py] --> O[Fine-tune BETO]
-      P[main_robertuito.py] --> Q[Fine-tune RoBERTuito]
-    end
-```
+Transformer fine-tuning is handled by `main_bert.py` and `main_robertuito.py`. These scripts prepare a cleaned transformer dataset, load the corresponding base model, fine-tune it for the binary classification task, and save the best model artifacts.
 
 ## Key files and current responsibilities
 
