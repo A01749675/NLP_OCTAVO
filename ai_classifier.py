@@ -3,10 +3,32 @@ import pandas as pd
 from paths import resolve_input_path, resolve_output_path
 from sklearn.metrics import accuracy_score, classification_report, confusion_matrix, precision_recall_fscore_support
 
+
 def read_tweets(file_path):
     """
-    Reads the CSV and keeps tweet_id, tweet_text, and class.
-    The original class is renamed to real_class.
+    Reads a CSV file containing tweets and keeps specific columns.
+
+    This function resolves the given file path, reads the CSV data, and
+    extracts the 'tweet_id', 'tweet_text', and 'class' columns. It drops
+    any rows with missing values in these columns and renames the 'class'
+    column to 'real_class'.
+
+    Parameters
+    ----------
+    file_path : str
+        The path to the CSV file to be read.
+
+    Returns
+    -------
+    pandas.DataFrame
+        A DataFrame containing the cleaned data with columns 'tweet_id',
+        'tweet_text', and 'real_class'.
+
+    Raises
+    ------
+    ValueError
+        If any of the required columns ('tweet_id', 'tweet_text', 'class')
+        are missing from the input CSV file.
     """
     file_path = resolve_input_path(file_path)
 
@@ -29,7 +51,24 @@ def read_tweets(file_path):
 
 def classify_tweet(tweet_text, model="gemma2:9b"):
     """
-    Sends one tweet to Ollama using the provided model and returns the predicted class.
+    Sends a single tweet to an Ollama model for classification and returns the predicted class.
+
+    This function prompts an LLM via the Ollama API to classify a given tweet
+    into one of two mutually exclusive categories: 'control' or 'anorexia'.
+    It parses the model's response, strictly extracting the class name, and
+    defaults to 'control' if the output is ambiguous or unidentifiable.
+
+    Parameters
+    ----------
+    tweet_text : str
+        The text content of the tweet to be classified.
+    model : str, optional
+        The name of the Ollama model to use for classification (default is "gemma2:9b").
+
+    Returns
+    -------
+    str
+        The predicted class label, which will be either "anorexia" or "control".
     """
     response = ollama.chat(
         model=model,
@@ -66,7 +105,26 @@ Tweet:
 
 def classify_tweet_few_shot(tweet_text, model="gemma2:9b"):
     """
-    Sends one tweet to Ollama using the provided model and returns the predicted class.
+    Sends a single tweet to an Ollama model for classification using a few-shot prompt and returns the predicted class.
+
+    This function prompts an LLM via the Ollama API to classify a given tweet
+    into one of two mutually exclusive categories: 'control' or 'anorexia'.
+    It utilizes a few-shot prompting approach by providing several labeled
+    examples within the prompt to guide the model's behavior. It parses the
+    model's response, strictly extracting the class name, and defaults to
+    'control' if the output is ambiguous or unidentifiable.
+
+    Parameters
+    ----------
+    tweet_text : str
+        The text content of the tweet to be classified.
+    model : str, optional
+        The name of the Ollama model to use for classification (default is "gemma2:9b").
+
+    Returns
+    -------
+    str
+        The predicted class label, which will be either "anorexia" or "control".
     """
     response = ollama.chat(
         model=model,
@@ -110,8 +168,34 @@ Tweet:
         return "control"
 
 
-
 def calculate_confusion_matrix(output_file):
+    """
+    Calculates, prints, and returns the confusion matrix and overall classification metrics.
+
+    This function reads a CSV file containing true ('real_class') and
+    predicted ('new_class') labels. It calculates various performance
+    metrics (accuracy, macro/weighted precision, recall, and F1-score)
+    assuming the target classes are 'control' and 'anorexia'. It prints
+    a detailed evaluation report to the console and returns the confusion
+    matrix as a formatted DataFrame.
+
+    Parameters
+    ----------
+    output_file : str
+        The path to the CSV file containing the classification results.
+
+    Returns
+    -------
+    pandas.DataFrame
+        A DataFrame representing the confusion matrix, with rows indicating
+        true classes and columns indicating predicted classes.
+
+    Raises
+    ------
+    ValueError
+        If the required columns ('real_class', 'new_class') are missing
+        from the input CSV file.
+    """
     output_path = resolve_output_path(output_file)
     df = pd.read_csv(output_path, encoding="utf-8")
 
@@ -139,7 +223,7 @@ def calculate_confusion_matrix(output_file):
     print("=========================================")
     print(f"Total Samples Evaluated: {len(y_true)}")
     print(f"Overall Accuracy:       {metrics['accuracy']:.4f}")
-    
+
     overall = metrics["overall"]
     print("\n--- Macro Averages (Unweighted) ---")
     print(f"Macro Precision:        {overall['macro_precision']:.4f}")
@@ -150,7 +234,7 @@ def calculate_confusion_matrix(output_file):
     print(f"Weighted Precision:     {overall['weighted_precision']:.4f}")
     print(f"Weighted Recall:        {overall['weighted_recall']:.4f}")
     print(f"Weighted F1-Score:      {overall['weighted_f1']:.4f}")
-    
+
     print("\nConfusion Matrix:")
     print(cm_df)
     print("=========================================")
@@ -160,7 +244,35 @@ def calculate_confusion_matrix(output_file):
 
 def calculate_confusion_metrics(y_true, y_pred, labels=None):
     """
-    Builds confusion matrix metrics and calculates overall global metrics.
+    Builds a confusion matrix and calculates detailed classification metrics.
+
+    This function computes per-label metrics (precision, recall, F1-score,
+    and support) as well as overall global metrics (accuracy, macro averages,
+    and weighted averages) to evaluate the performance of a classification
+    model. It dynamically handles missing labels and appends them to the
+    evaluation if a specific subset is provided but other labels are present
+    in the data.
+
+    Parameters
+    ----------
+    y_true : array-like
+        Ground truth (correct) target values.
+    y_pred : array-like
+        Estimated target values as returned by a classifier.
+    labels : array-like, optional
+        List of labels to index the matrix and calculate metrics for. If None,
+        it defaults to the sorted union of unique labels present in `y_true`
+        and `y_pred`.
+
+    Returns
+    -------
+    dict
+        A comprehensive dictionary containing the evaluation results:
+        - 'confusion_matrix' (pandas.DataFrame): The confusion matrix.
+        - 'accuracy' (float): The overall accuracy score.
+        - 'per_label' (dict): Precision, recall, F1-score, and support for each label.
+        - 'labels' (list): The complete list of labels evaluated.
+        - 'overall' (dict): Macro and weighted averages for precision, recall, and F1-score.
     """
     if labels is None:
         labels = sorted(set(y_true) | set(y_pred))
@@ -219,8 +331,28 @@ def calculate_confusion_metrics(y_true, y_pred, labels=None):
 
 def classify_tweets(df, model="gemma2:9b"):
     """
-    Classifies every tweet using the provided model and adds the Ollama prediction
-    as a new column called new_class.
+    Classifies a collection of tweets in a DataFrame and appends the predictions.
+
+    This function iterates over each row in the input DataFrame, extracts
+    the tweet text, and passes it to the `classify_tweet` function using
+    the specified model. It prints the classification progress to the console
+    and returns a copy of the DataFrame with an additional 'new_class' column
+    containing the model's predictions.
+
+    Parameters
+    ----------
+    df : pandas.DataFrame
+        The input DataFrame containing the tweets to be classified. It is
+        expected to contain at least the columns 'tweet_id', 'tweet_text',
+        and 'real_class'.
+    model : str, optional
+        The name of the Ollama model to use for classification (default is "gemma2:9b").
+
+    Returns
+    -------
+    pandas.DataFrame
+        A copy of the original DataFrame with a new column named 'new_class'
+        that contains the predicted class labels for each tweet.
     """
     new_classes = []
 
@@ -230,7 +362,7 @@ def classify_tweets(df, model="gemma2:9b"):
         real_class = row["real_class"]
 
         print(f"Classifying tweet_id: {tweet_id} | real class: {real_class}")
-        
+
         # print(f"Tweet text: {tweet_text}")
 
         new_class = classify_tweet(tweet_text, model=model)
@@ -245,9 +377,25 @@ def classify_tweets(df, model="gemma2:9b"):
 
 def save_results(df, output_file):
     """
-    Saves the results to a CSV file.
-    Output columns:
-    tweet_id, tweet_text, real_class, new_class
+    Saves the classification results from a DataFrame to a CSV file.
+
+    This function resolves the designated output path, filters the DataFrame
+    to keep only the essential columns ('tweet_id', 'tweet_text', 'real_class',
+    and 'new_class'), and exports the data to a comma-separated values (CSV)
+    file. It also prints a confirmation message to the console with the final
+    save path.
+
+    Parameters
+    ----------
+    df : pandas.DataFrame
+        The DataFrame containing the classified tweets. It must include the
+        columns 'tweet_id', 'tweet_text', 'real_class', and 'new_class'.
+    output_file : str
+        The destination file name or path where the CSV will be saved.
+
+    Returns
+    -------
+    None
     """
     output_path = resolve_output_path(output_file)
 
@@ -258,7 +406,24 @@ def save_results(df, output_file):
     print(f"Results saved to: {output_path}")
 
 
-if __name__ == "__main__":
+def main():
+    """
+    Executes the full pipeline for tweet classification and evaluation.
+
+    This function serves as the main entry point for the script. It defines
+    the input and output file paths, reads the training data, performs
+    classification using a specified Ollama model (in this case,
+    "llama3.2:latest"), prints a preview of the results, saves the
+    predictions to a CSV file, and calculates the final confusion matrix.
+
+    Parameters
+    ----------
+    None
+
+    Returns
+    -------
+    None
+    """
     input_file = "data_train(in).csv"
     output_file = "llama_32_predictions.csv"
 
@@ -268,5 +433,9 @@ if __name__ == "__main__":
 
     print(results_df.head())
     save_results(results_df, output_file)
-    
+
     cm_df = calculate_confusion_matrix(output_file)
+
+
+if __name__ == "__main__":
+    main()
