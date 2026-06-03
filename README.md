@@ -2,38 +2,64 @@
 
 ## Project Overview
 
-`NLP_OCTAVO` is a Python project for Spanish tweet classification. It currently includes:
+`NLP_OCTAVO` is a Spanish tweet classification toolkit built in Python. The repository now includes:
 
 - text cleaning and preprocessing
-- multiple feature extraction strategies
-- model training for Random Forest, Logistic Regression, and KNN
-- evaluation utilities
-- a validation script that evaluates saved model artifacts against a cleaned test set
+- feature extraction for TF-IDF, n-grams, Word2Vec, BETO, and RoBERTuito
+- training pipelines for Random Forest, Logistic Regression, and KNN
+- model evaluation and validation utilities
+- AI classification using Ollama-based LLM prompts
+- dedicated fine-tuning scripts for BETO and RoBERTuito
 
-## Current pipeline
+## Current architecture and execution flow
 
-### Data preprocessing
-- `text_cleaner.py` performs the current cleaning flow used by `main.py` and `model_validation.py`.
-- The preprocessing pipeline removes URLs, hashtags, mentions, numbers, punctuation, extra whitespace, Spanish stopwords, and applies stemming.
-- The `text_lemmatization()` helper exists, but it is not part of the active `text_filtering()` pipeline.
+The active flow consists of two main branches:
 
-### CSV path handling
-- `paths.py` centralizes input and output path resolution.
-- Generated CSVs are written under the `files/` directory.
-- `resolve_input_path()` checks `files/` first and then falls back to the repository root for backward compatibility.
-- `resolve_output_path()` always writes under `files/` and creates the folder if needed.
+1. Traditional supervised learning pipeline (`main.py`)
+2. AI classifier / prompt-based inference flow (`ai_classifier.py`)
 
-### Vectorization
-- `vectorizers.py` exposes the current vectorizers and routing helpers:
-  - `tfidf_vectorize()`
-  - `ngram_vectorize()`
-  - `word2vec_vectorize()`
-  - `tfidf_bigrams_vectorize()`
-  - `tfidf_trigrams_vectorize()`
-  - `all_vectorize()`
-  - `process_csv()`
+### Mermaid execution flow
 
-### Supported `process_csv()` targets
+```mermaid
+flowchart TD
+    A[Raw CSV input] --> B[text_cleaner.py]
+    B --> C[Cleaned CSV output]
+    C --> D[vectorizers.py / process_csv()]
+    D --> E[Vectorized dataset CSVs]
+    E --> F[main.py train_and_plot()]
+    F --> G[Saved ML artifacts (.pkl)]
+    F --> H[evaluation.py metrics & plots]
+    G --> I[model_validation.py]
+    I --> J[Validation report CSV]
+
+    subgraph AI Classifier
+      K[ai_classifier.py] --> L[Ollama / LLM prompt classification]
+      L --> M[Prediction CSV + metrics]
+    end
+
+    subgraph Transformer Fine-tuning
+      N[main_bert.py] --> O[Fine-tune BETO]
+      P[main_robertuito.py] --> Q[Fine-tune RoBERTuito]
+    end
+```
+
+## Key files and current responsibilities
+
+- `text_cleaner.py` — main preprocessing pipeline for training and validation data
+- `paths.py` — centralized path resolution for inputs, outputs, and models
+- `vectorizers.py` — converts cleaned data into TF-IDF, n-grams, Word2Vec, and transformer-ready representations
+- `data_loader.py` — loads feature CSVs and returns `(X, y)` for training
+- `main.py` — orchestrates training experiments and saves model artifacts
+- `evaluation.py` — computes metrics, confusion matrices, ROC AUC, and plotting helpers
+- `model_validation.py` — validates saved `.pkl` models against a cleaned test set
+- `ai_classifier.py` — prompt-based AI classification using Ollama and specialized prompt styles
+- `main_bert.py` — fine-tunes BETO for the tweet classification task
+- `main_robertuito.py` — fine-tunes RoBERTuito for the tweet classification task
+
+## Supported training representations
+
+The supervised training pipeline currently supports:
+
 - `tfidf`
 - `ngrams`
 - `bigrams`
@@ -44,107 +70,57 @@
 - `tfidf_trigrams`
 - `beto`
 - `beto_finetuned`
+- `robertuito`
+- `robertuito_finetuned`
 
-The combined TF-IDF variants currently use these settings:
-- `tfidf_bigrams`: TF-IDF range `(1, 2)` + count range `(2, 2)`
-- `tfidf_trigrams`: TF-IDF range `(1, 3)` + count range `(3, 3)`
+## AI classifier implementation
 
-### Models
-- `models/random_forest_model.py` -> Random Forest classifier with balanced class weights
-- `models/logistic_regression_model.py` -> Logistic Regression pipeline with scaling
-- `models/knn_model.py` -> KNN pipeline with scaling, cosine distance, and distance weighting
+`ai_classifier.py` adds an alternative inference path using Ollama.
 
-### Evaluation
-- `evaluation.py` computes accuracy, precision, recall, F1, specificity, and ROC AUC where supported.
-- It also contains plotting helpers for class distribution, confusion matrices, feature importance, and ROC curves.
+It exposes:
 
-### Validation
-- `model_validation.py` cleans the test file, vectorizes it using the saved model target, aligns the test features to the training columns, evaluates the saved artifacts, and writes `model_evaluation_results.csv`.
+- `read_tweets(file_path)` — loads tweet records and required columns
+- `classify_tweet(tweet_text, model)` — single-shot prompt classification
+- `classify_tweet_few_shot(tweet_text, model)` — few-shot prompt classification
+- `classify_chain_of_thought(tweet_text, model)` — chain-of-thought prompt variation
+- `calculate_confusion_matrix(output_file)` — evaluation for prompt-based predictions
 
-## Key files
+The AI classifier routes tweets through an LLM prompt and enforces a strict output of either `control` or `anorexia`.
 
-- `main.py` -> orchestration for training experiments and saving model artifacts
-- `vectorizers.py` -> vectorization implementations and target routing
-- `data_loader.py` -> loads vectorized CSV files and returns `(X, y)`
-- `text_cleaner.py` -> text preprocessing helpers
-- `evaluation.py` -> metrics and plotting helpers
-- `model_validation.py` -> validation of saved `.pkl` model artifacts
-- `tests/` -> unit tests for the vectorization and routing logic
+## Fine-tuning scripts
 
-## Data files
+- `main_bert.py` — loads `dccuchile/bert-base-spanish-wwm-cased`, tokenizes cleaned data, fine-tunes for 2 classes, saves best model to `modelo_beto_final/`, and writes metrics to `metricas_evaluacion_entrenamiento.txt`
+- `main_robertuito.py` — loads `pysentimiento/robertuito-sentiment-analysis`, adapts the head to 2 classes, fine-tunes, saves best model to `modelo_robertuito_final/`, and writes metrics to `metricas_evaluacion_robertuito.txt`
 
-### Source inputs
-- `files/data_train(in).csv` -> raw input dataset used by the current pipeline
-- `files/data_test_fold1(in).csv` -> raw test dataset used by validation
-- `files/data_train_cleaned.csv` -> cleaned dataset output used by the training pipeline
+## Path and artifact conventions
 
-### Generated artifacts
-- `files/data_train_tfidf.csv` -> TF-IDF features
-- `files/data_train_ngrams.csv` -> generic n-gram features
-- `files/data_train_bigrams.csv` -> bigram features
-- `files/data_train_trigrams.csv` -> trigram features
-- `files/data_train_word2vec.csv` -> Word2Vec features
-- `files/data_train_all.csv` -> combined TF-IDF + n-gram + Word2Vec representation
-- `files/data_train_tfidf_bigrams.csv` -> combined TF-IDF + bigram representation
-- `files/data_train_tfidf_trigrams.csv` -> combined TF-IDF + trigram representation
-- `files/model_evaluation_results.csv` -> generated output from `model_validation.py`
-- `files/temporary_tfidf.csv` and `files/temporary_ngrams.csv` -> temporary vectorization outputs used during validation and tests
+- Input CSVs live under `files/` or at repository root for compatibility.
+- Cleaned data is written to `files/data_train_cleaned.csv` and `files/data_train_cleaned2.csv`.
+- Vectorized outputs are written to `files/` as produced by `process_csv()`.
+- Saved traditional ML artifacts are written as `model_name-target.pkl` via `main.py`.
+- Fine-tuned transformer models are saved under `modelo_beto_final/` and `modelo_robertuito_final/`.
 
-### Model artifacts
-- `WORD2VEC.model` -> cached Word2Vec model used by `word2vec_vectorize()`
-- `files/word2vecText.txt` -> auxiliary domain text used for Word2Vec training
+## Usage examples
 
-## Requirements
-
-Install dependencies from `requirements.txt`:
+### Install requirements
 
 ```bash
 pip install -r requirements.txt
 ```
 
-> `text_cleaner.py` downloads NLTK resources at import time and expects the Spanish spaCy model `es_core_news_sm` to be available.
-
-> `main_bert.py` and `test_bert.py` require Hugging Face Hub authentication if they need to download a model/tokenizer from the hub. Run `huggingface-cli login` with a valid Hugging Face token before using these scripts.
->
-> The `beto_finetuned` target uses the locally saved fine-tuned BETO model in `modelo_beto_final`. If that directory is missing, the function will raise an error instead of falling back to base BETO.
->
-> To check whether CUDA is available for GPU execution, run:
->
-> ```bash
-> python -c "import torch; print(torch.cuda.is_available())"
-> ```
->
-> If CUDA is available, `True` is returned; otherwise it defaults to CPU.
-
-## Usage
-
-### Clean the raw data
+### Clean the raw training data
 
 ```bash
 python text_cleaner.py
 ```
 
-This uses `paths.py` to read `files/data_train(in).csv` and write `files/data_train_cleaned.csv`.
-
-### Run the full experiment suite
+### Run the full supervised experiment suite
 
 ```bash
 python main.py
 ```
 
-`main.py` calls `run_experiments()` and saves model artifacts as `model-representation.pkl` files in the repository root.
-
-### Vectorize a cleaned CSV manually
-
-```python
-from vectorizers import process_csv
-
-process_csv("files/data_train_cleaned.csv", "tfidf")
-process_csv("files/data_train_cleaned.csv", "tfidf_bigrams")
-process_csv("files/data_train_cleaned.csv", "word2vec")
-```
-
-### Train a single model configuration
+### Run a specific experiment from Python
 
 ```python
 from main import train_and_plot
@@ -157,7 +133,7 @@ train_and_plot(
 )
 ```
 
-### Run KNN experiments
+### Run KNN sweep experiments
 
 ```python
 from main import test_knn_model
@@ -165,35 +141,45 @@ from main import test_knn_model
 test_knn_model(input_file="files/data_train_cleaned.csv")
 ```
 
-### Validate saved models
+### Validate saved model artifacts
 
 ```bash
 python model_validation.py
 ```
 
-This reads the current `MODELS` list from `model_validation.py`, cleans `files/data_test_fold1(in).csv`, vectorizes the test file using the saved model target, aligns any missing feature columns to zero, evaluates each saved artifact, and exports `files/model_evaluation_results.csv`.
+### Run prompt-based AI classification
 
-## Current experiment coverage
+```python
+from ai_classifier import read_tweets, classify_tweet, calculate_confusion_matrix
 
-`run_experiments()` currently includes:
+# load tweets and classify
+``` 
 
-- `tfidf`
-- `bigrams`
-- `trigrams`
-- `word2vec`
-- `all`
-- `tfidf_bigrams`
-- `tfidf_trigrams`
+> `ai_classifier.py` uses the Ollama client and requires Ollama to be installed and configured locally.
 
-The model validation script evaluates the corresponding saved artifacts from `MODELS`.
+### Fine-tune transformer models
+
+```bash
+python main_bert.py
+python main_robertuito.py
+```
+
+## Generated outputs
+
+- `files/model_evaluation_results.csv` — validated saved model results
+- `files/all_experiments.csv` — results from `run_experiments()`
+- `files/beto_experiments.csv` — results from `run_beto()`
+- `files/knn_performance.csv` — results from `test_knn_model()`
+- `metricas_evaluacion_entrenamiento.txt` — BETO training metrics
+- `metricas_evaluacion_robertuito.txt` — RoBERTuito training metrics
 
 ## Notes
 
-- The repository is focused on Spanish-language tweet classification.
-- `process_csv()` requires a `tweet_text_clean` column and a `class` column in the input CSV.
-- The current validation flow uses `feature_columns` stored in each saved model artifact to align the test frame before prediction.
-- The `tfidf_ngram_vectorize()` helper is still present as a backward-compatible alias for the trigram-based combined output.
+- `text_cleaner.py` downloads required NLTK resources and expects Spanish NLP support.
+- Transformer fine-tuning is GPU-friendly but falls back to CPU if CUDA is unavailable.
+- `main.py` discriminates between cleaned sets: `files/data_train_cleaned.csv` for classical features and `files/data_train_cleaned2.csv` for transformer-based targets.
+- The repository is centered on Spanish tweet classification for `control` vs `anorexia` labels.
 
 ## License
 
-This repository does not include a license file. Add one if you plan to share or publish the code.
+This repository does not include a license file. Add one before sharing publicly.
