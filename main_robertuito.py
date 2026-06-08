@@ -6,6 +6,7 @@ from sklearn.metrics import accuracy_score, precision_recall_fscore_support, roc
 from transformers import AutoTokenizer, AutoModelForSequenceClassification
 from transformers import TrainingArguments, Trainer, EarlyStoppingCallback
 from torch.utils.data import Dataset
+from pysentimiento.preprocessing import preprocess_tweet
 from datetime import datetime
 import os
 
@@ -29,13 +30,13 @@ class TweetDataset(Dataset):
 # 2. Cargar Tokenizer de RoBERTuito (Usa AutoTokenizer para RoBERTa)
 # =====================================================================
 # robertuito-sentiment-analysis maneja emojis y jerga de Twitter nativamente
-nombre_modelo = "pysentimiento/robertuito-sentiment-analysis"
+nombre_modelo = "pysentimiento/robertuito-base-cased"
 tokenizer = AutoTokenizer.from_pretrained(nombre_modelo)
 
 # =====================================================================
 # 3. Carga y preparación de datos
 # =====================================================================
-df = pd.read_csv("files/data_train_cleaned2.csv", encoding="utf-8")
+df = pd.read_csv("files/data_train(in).csv", encoding="utf-8")
 
 if df.empty:
     raise ValueError("El archivo CSV está vacío.")
@@ -57,7 +58,7 @@ if not clases_validas.all():
 
 df["label_id"] = df["class_clean"].map(mapeo_clases)
 
-X = df["tweet_text_clean"].fillna("").astype(str).tolist()
+X = df["tweet_text"].fillna("").astype(str).tolist()
 y = df["label_id"].tolist()
 
 print(f"Datos cargados correctamente para RoBERTuito. Total muestras válidas: {len(X)}")
@@ -67,9 +68,12 @@ X_train, X_test, y_train, y_test = train_test_split(
     X, y, test_size=0.4, random_state=42, stratify=y
 )
 
-# Tokenizar de forma independiente para RoBERTuito (max_length=128 es ideal para tweets)
-train_encodings = tokenizer(X_train, padding=True, truncation=True, max_length=128)
-test_encodings = tokenizer(X_test, padding=True, truncation=True, max_length=128)
+print("Traduciendo emojis y preprocesando jerga de Twitter...")
+X_train_pre = [preprocess_tweet(tweet) for tweet in X_train]
+X_test_pre = [preprocess_tweet(tweet) for tweet in X_test]
+
+train_encodings = tokenizer(X_train_pre, padding=True, truncation=True, max_length=128)
+test_encodings = tokenizer(X_test_pre, padding=True, truncation=True, max_length=128)
 
 train_dataset = TweetDataset(train_encodings, y_train)
 test_dataset = TweetDataset(test_encodings, y_test)
@@ -130,16 +134,18 @@ training_args = TrainingArguments(
     num_train_epochs=5,                        # 5 epochs le da suficiente espacio al Early Stopping
     per_device_train_batch_size=16,            # Batch de 16 para mayor frecuencia de actualización en datos chicos
     per_device_eval_batch_size=32,           
-    learning_rate=3e-5,                        # RoBERTa se beneficia de un LR ligeramente más alto que BERT base
+    learning_rate=2e-5,
     weight_decay=0.05,                         # Regularización moderada para evitar memorizar palabras clave ruidosas
-    warmup_ratio=0.15,                         # Calentamiento inicial extendido al 15% de los pasos
+    warmup_ratio=0.10,
     lr_scheduler_type="linear",                # Decaimiento lineal estable para pocos steps por epoch
     eval_strategy="epoch",                   
     save_strategy="epoch",                    
     load_best_model_at_end=True,               # Revierte automáticamente al checkpoint óptimo
-    metric_for_best_model="f1",                # Buscamos maximizar el F1-Score macro/general
-    greater_is_better=True,
+    metric_for_best_model="eval_loss",                # Buscamos maximizar el F1-Score macro/general
+    greater_is_better=False,
     save_total_limit=1,                        # Mantiene solo el mejor modelo para ahorrar espacio
+    disable_tqdm=False,
+    report_to="none",
     logging_steps=10,
 )
 
@@ -179,7 +185,7 @@ trainer.save_model(ruta_guardado)
 tokenizer.save_pretrained(ruta_guardado)
 
 # --- GUARDAR MÉTRICAS EN UN TXT ---
-nombre_archivo = "metricas_evaluacion_robertuito.txt"
+nombre_archivo = "metricas_evaluacion_robertuito2.txt"
 ahora = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
 with open(nombre_archivo, "w", encoding="utf-8") as f:
