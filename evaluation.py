@@ -1,10 +1,20 @@
 import pandas as pd
 import matplotlib.pyplot as plt
+from pathlib import Path
 from sklearn import metrics
 from sklearn.metrics import ConfusionMatrixDisplay,confusion_matrix
-import matplotlib.pyplot as plt
 from sklearn.metrics import roc_curve, roc_auc_score
 from sklearn.ensemble import RandomForestClassifier
+
+SHOW_PLOTS = False
+"""Global flag controlling whether plots are displayed."""
+
+
+def _maybe_show_plot():
+    if SHOW_PLOTS:
+        plt.show()
+    else:
+        plt.close("all")
 
 
 def evaluate_model(model, X_test, y_test):
@@ -79,7 +89,7 @@ def plot_class_distribution(y):
     plt.xlabel("Class")
     plt.ylabel("Count")
     plt.tight_layout()
-    plt.show()
+    _maybe_show_plot()
 
 
 def plot_confusion_matrix(y_test, y_pred, title="Confusion Matrix"):
@@ -103,7 +113,7 @@ def plot_confusion_matrix(y_test, y_pred, title="Confusion Matrix"):
     ConfusionMatrixDisplay.from_predictions(y_test, y_pred, ax=ax)
     plt.title(title)
     plt.tight_layout()
-    plt.show()
+    _maybe_show_plot()
 
 
 def plot_random_forest_feature_importance(model, X, top_n=15):
@@ -135,7 +145,7 @@ def plot_random_forest_feature_importance(model, X, top_n=15):
     plt.title(f"Top {top_n} Feature Importances")
     plt.xlabel("Importance")
     plt.tight_layout()
-    plt.show()
+    _maybe_show_plot()
 
 
 def plot_logistic_regression_coefficients(model, X, top_n=15):
@@ -173,7 +183,7 @@ def plot_logistic_regression_coefficients(model, X, top_n=15):
     plt.title(f"Top Logistic Regression Coefficients")
     plt.xlabel("Coefficient Value")
     plt.tight_layout()
-    plt.show()
+    _maybe_show_plot()
 
 
 def plot_train_vs_test_accuracy_rf(X_train, X_test, y_train, y_test, random_state=42):
@@ -226,7 +236,7 @@ def plot_train_vs_test_accuracy_rf(X_train, X_test, y_train, y_test, random_stat
     plt.ylabel("Accuracy")
     plt.legend()
     plt.tight_layout()
-    plt.show()
+    _maybe_show_plot()
     
 
 
@@ -236,7 +246,8 @@ def plot_roc_auc(
     X_test,
     y_test,
     positive_label="anorexia",
-    title="ROC Curve"
+    title="ROC Curve",
+    save_path=None
 ):
     """
     Plots the ROC curve for a binary classification model and returns the AUC.
@@ -253,6 +264,8 @@ def plot_roc_auc(
         Label considered the positive class. Defaults to "anorexia".
     title : str, optional
         Plot title. Defaults to "ROC Curve".
+    save_path : str, optional
+        File path where the plot should be saved as a PNG.
 
     Returns
     -------
@@ -294,7 +307,14 @@ def plot_roc_auc(
     plt.ylabel("True Positive Rate / Recall")
     plt.legend()
     plt.tight_layout()
-    plt.show()
+
+    if save_path is not None:
+        save_path_obj = Path(save_path)
+        save_path_obj.parent.mkdir(parents=True, exist_ok=True)
+        plt.savefig(save_path_obj)
+        print(f"Saved ROC AUC plot to {save_path_obj}")
+
+    _maybe_show_plot()
 
     return auc_score
 

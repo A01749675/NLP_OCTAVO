@@ -36,7 +36,7 @@ from evaluation import (
     calculate_auc
 )
 
-PLOTS_ACTIVE = False
+PLOTS_ACTIVE = True
 INPUT_TEST_FILE = os.path.join("files", "data_test_fold1(in).csv")
 CLEANED_TEST_FILE = os.path.join("files", "cleaned_data_test_fold1(in).csv")
 CLEANED_TEST_FILE_2 = os.path.join("files", "cleaned_data_test_fold1(in)2.csv")
@@ -356,11 +356,15 @@ def train_and_plot(
         # -----------------------------
         normalized_model_name = model_name.lower()
         
+        auc_plot_path = resolve_output_path(
+            f"auc_{model_name}_{target}.png"
+        )
         auc_score = plot_roc_auc(
             model=model,
             X_test=X_test,
             y_test=y_test,
-            title=f"ROC Curve - {model_name.upper()} with {target.upper()}"
+            title=f"ROC Curve - {model_name.upper()} with {target.upper()}",
+            save_path=auc_plot_path
         )
         results["auc"] = auc_score
 
