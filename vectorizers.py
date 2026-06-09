@@ -651,7 +651,7 @@ def _run_robertuito_vectorization(texts, tweet_ids, classes, output_file, ruta_m
     elif require_local:
         raise FileNotFoundError(f"No se encontró el directorio del modelo ajustado: {ruta_modelo}")
     else:
-        model_source = "pysentimiento/robertuito-sentiment-analysis"
+        model_source = "pysentimiento/robertuito-base-cased"
         print(f"Cargando RoBERTuito Base desde Hugging Face: {model_source}")
 
     # RoBERTuito requiere Auto classes obligatoriamente en vez de Bert classes
