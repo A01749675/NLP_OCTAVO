@@ -10,6 +10,8 @@ models/__pycache__/
 # But allow this specific CSV
 !data_train.csv
 !data_train(in).csv
+!data_test_fold1(in).csv
+!data_test_fold2(in).csv
 *.pkl
 
 /resultados_beto

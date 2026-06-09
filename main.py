@@ -36,7 +36,8 @@ from evaluation import (
     calculate_auc
 )
 
-PLOTS_ACTIVE = True
+PLOTS_ACTIVE = False
+AUCACTIVE = False
 INPUT_TEST_FILE = os.path.join("files", "data_test_fold1(in).csv")
 CLEANED_TEST_FILE = os.path.join("files", "cleaned_data_test_fold1(in).csv")
 CLEANED_TEST_FILE_2 = os.path.join("files", "cleaned_data_test_fold1(in)2.csv")
@@ -352,21 +353,9 @@ def train_and_plot(
         )
 
         # -----------------------------
-        # 8. Model-specific plots
+        # 8. Model-specific plots (excluding ROC/AUC)
         # -----------------------------
         normalized_model_name = model_name.lower()
-        
-        auc_plot_path = resolve_output_path(
-            f"auc_{model_name}_{target}.png"
-        )
-        auc_score = plot_roc_auc(
-            model=model,
-            X_test=X_test,
-            y_test=y_test,
-            title=f"ROC Curve - {model_name.upper()} with {target.upper()}",
-            save_path=auc_plot_path
-        )
-        results["auc"] = auc_score
 
         if normalized_model_name in ["rf", "random_forest", "random forest"]:
             plot_random_forest_feature_importance(
@@ -394,6 +383,20 @@ def train_and_plot(
             print(
                 "KNN does not provide direct feature importances or coefficients."
             )
+
+    # AUC/ROC plotting controlled separately
+    if AUCACTIVE:
+        auc_plot_path = resolve_output_path(
+            f"auc_{model_name}_{target}.png"
+        )
+        auc_score = plot_roc_auc(
+            model=model,
+            X_test=X_test,
+            y_test=y_test,
+            title=f"ROC Curve - {model_name.upper()} with {target.upper()}",
+            save_path=auc_plot_path
+        )
+        results["auc"] = auc_score
 
     return model, results
 
@@ -783,8 +786,8 @@ if __name__ == "__main__":
     #         model_name='knn',
     #         random_state=42
     #     )
-    # results = run_experiments()
     results = run_experiments()
+    # results = run_beto()
     # print(results)
     
     # model, results = train_and_plot(
