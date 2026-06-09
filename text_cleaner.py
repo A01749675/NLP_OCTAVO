@@ -216,6 +216,35 @@ def process_csv2(input_file, output_file, text_column="tweet_text"):
 
     return output_path
 
+def text_filtering_light(text):
+    """
+    Limpieza ligera optimizada para Transformers (BETO, RoBERTuito).
+    Elimina ruido digital pero conserva la sintaxis, stop words y contexto.
+    """
+    if not isinstance(text, str):
+        return ""
+
+    # 1. Convertir a minúsculas (ideal si usas modelos 'uncased')
+    text = text.lower()
+
+    # 2. Eliminar URLs y enlaces
+    text = re.sub(r'http\S+|www\S+|https\S+', '', text, flags=re.MULTILINE)
+
+    # 3. Eliminar menciones a usuarios (@usuario)
+    text = re.sub(r'\@\w+', '', text)
+
+    # 4. Eliminar etiquetas HTML
+    text = re.sub(r'<.*?>', '', text)
+
+    # 5. Eliminar caracteres extremadamente raros, pero conservando
+    # letras, números, acentos y puntuación básica (. , ! ?)
+    text = re.sub(r'[^\w\s\.,!\?áéíóúüñÁÉÍÓÚÜÑ]', '', text)
+
+    # 6. Eliminar espacios múltiples o saltos de línea extra
+    text = re.sub(r'\s+', ' ', text).strip()
+
+    return text
+
 if __name__ == "__main__":
     process_csv("files/data_test_fold2(in).csv", "cleaned_data_test_fold2(in).csv", text_column="tweet_text")
     process_csv2("files/data_train(in).csv", "cleaned_data_test_fold2(in)2.csv", text_column="tweet_text")
