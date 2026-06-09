@@ -338,7 +338,7 @@ def _combine_tfidf_and_ngrams(
     print(f"{label} data saved to {output_file}")
     print(f"Number of TF-IDF features: {tfidf_df.shape[1] - 3}")
     print(f"Number of N-gram features: {ngram_df.shape[1] - 3}")
-    # print(f"Total features: {combined_df.shape[1] - 3}")
+    print(f"Total features: {combined_df.shape[1] - 3}")
 
     return combined_df
 
@@ -778,6 +778,10 @@ def process_csv(input_file, target, only_train=False, test_size=0.2, random_stat
     match target:
         case "tfidf":
             file_name = resolve_output_path("data_train_tfidf.csv")
+            
+            if os.path.exists(file_name):
+                print(f"Archivo TF-IDF ya existe en {file_name}. Cargando existente...")
+                return file_name
 
             tfidf_vectorize(
                 texts=texts,
@@ -791,6 +795,10 @@ def process_csv(input_file, target, only_train=False, test_size=0.2, random_stat
             file_name = resolve_output_path(
                 "data_train_ngrams.csv" if target == "ngrams" else "data_train_trigrams.csv"
             )
+            
+            if os.path.exists(file_name):
+                print(f"Archivo de n-grams ya existe en {file_name}. Cargando existente...")
+                return file_name
 
             ngram_vectorize(
                 texts=texts,
@@ -802,6 +810,10 @@ def process_csv(input_file, target, only_train=False, test_size=0.2, random_stat
 
         case "bigrams":
             file_name = resolve_output_path("data_train_bigrams.csv")
+            
+            if os.path.exists(file_name):
+                print(f"Archivo de bigrams ya existe en {file_name}. Cargando existente...")
+                return file_name
 
             ngram_vectorize(
                 texts=texts,
@@ -838,6 +850,10 @@ def process_csv(input_file, target, only_train=False, test_size=0.2, random_stat
             )
         case "tfidf_bigrams":
             file_name = resolve_output_path("data_train_tfidf_bigrams.csv")
+            
+            if os.path.exists(file_name):
+                print(f"Archivo combinado TF-IDF + bigrams ya existe en {file_name}. Cargando existente...")
+                return file_name
 
             tfidf_bigrams_vectorize(
                 texts=texts,
@@ -850,6 +866,10 @@ def process_csv(input_file, target, only_train=False, test_size=0.2, random_stat
 
         case "tfidf_trigrams":
             file_name = resolve_output_path("data_train_tfidf_trigrams.csv")
+            
+            if os.path.exists(file_name):
+                print(f"Archivo combinado TF-IDF + trigrams ya existe en {file_name}. Cargando existente...")
+                return file_name
 
             tfidf_trigrams_vectorize(
                 texts=texts,

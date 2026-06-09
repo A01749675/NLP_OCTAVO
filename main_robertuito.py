@@ -10,6 +10,8 @@ from pysentimiento.preprocessing import preprocess_tweet
 from datetime import datetime
 import os
 
+from text_cleaner import text_filtering2  # Asegúrate de tener esta función definida en tu proyecto
+
 # =====================================================================
 # 1. Definición de la clase Dataset (Igual para PyTorch)
 # =====================================================================
@@ -69,8 +71,8 @@ X_train, X_test, y_train, y_test = train_test_split(
 )
 
 print("Traduciendo emojis y preprocesando jerga de Twitter...")
-X_train_pre = [preprocess_tweet(tweet) for tweet in X_train]
-X_test_pre = [preprocess_tweet(tweet) for tweet in X_test]
+X_train_pre = [text_filtering2(tweet) for tweet in X_train]
+X_test_pre = [text_filtering2(tweet) for tweet in X_test]
 
 train_encodings = tokenizer(X_train_pre, padding=True, truncation=True, max_length=128)
 test_encodings = tokenizer(X_test_pre, padding=True, truncation=True, max_length=128)

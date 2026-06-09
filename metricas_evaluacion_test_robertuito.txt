@@ -1,19 +1,18 @@
 ==================================================
 REPORTE DE EVALUACIÓN TEST CIEGO - ROBERTUITO
-Fecha y Hora: 2026-06-08 05:06:53
+Fecha y Hora: 2026-06-08 21:07:13
 ==================================================
 
-eval_loss                     : 0.1723
-eval_model_preparation_time   : 0.002
-eval_accuracy                 : 0.9440
-eval_f1                       : 0.9485
-eval_precision                : 0.9348
-eval_recall                   : 0.9627
-eval_specificity              : 0.9224
-eval_auc                      : 0.9767
-eval_runtime                  : 2.932
-eval_samples_per_second       : 85.266
-eval_steps_per_second         : 10.914
-epoch                         : 0
+eval_loss                     : 0.1700
+eval_model_preparation_time   : 0.0019
+eval_accuracy                 : 0.9560
+eval_f1                       : 0.9597
+eval_precision                : 0.9424
+eval_recall                   : 0.9776
+eval_specificity              : 0.9310
+eval_auc                      : 0.9732
+eval_runtime                  : 1.8087
+eval_samples_per_second       : 138.222
+eval_steps_per_second         : 17.692
 
 ==================================================

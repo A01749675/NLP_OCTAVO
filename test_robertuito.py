@@ -59,7 +59,7 @@ def compute_metrics(pred):
 # 3. Función principal de evaluación
 # =====================================================================
 def evaluate_test_data_robertuito(
-        input_csv="files/data_test_fold2.csv",
+        input_csv="files/data_test_fold2(in).csv",
         model_dir="./modelo_robertuito_final"
 ):
     """
@@ -161,6 +161,6 @@ def evaluate_test_data_robertuito(
 if __name__ == "__main__":
     # Ajusta los paths si tu estructura de carpetas es diferente
     evaluate_test_data_robertuito(
-        input_csv="files/data_test_fold2.csv",  # Usa tu archivo de test limpio
+        input_csv="files/data_test_fold2(in).csv",  # Usa tu archivo de test limpio
         model_dir="./modelo_robertuito_final"  # La carpeta donde se guardó el entrenamiento
     )
