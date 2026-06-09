@@ -475,7 +475,7 @@ def main():
     None
     """
     input_file = "data_train(in).csv"
-    output_file = "llama_32_predictions.csv"
+    output_file = "llama_32_predictions_few.csv"
 
     tweets_df = read_tweets(input_file)
 

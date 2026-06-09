@@ -64,8 +64,9 @@ def tfidf_vectorize(
     tfidf_matrix = tfidf.fit_transform(texts)
     feature_names = tfidf.get_feature_names_out()
 
-    tfidf_df = pd.DataFrame(
-        tfidf_matrix.toarray(),
+    tfidf_matrix = tfidf_matrix.astype(np.float32)
+    tfidf_df = pd.DataFrame.sparse.from_spmatrix(
+        tfidf_matrix,
         columns=[f"tfidf_{name}" for name in feature_names]
     )
 
@@ -128,8 +129,9 @@ def ngram_vectorize(
     ngram_matrix = vectorizer.fit_transform(texts)
     feature_names = vectorizer.get_feature_names_out()
 
-    ngram_df = pd.DataFrame(
-        ngram_matrix.toarray(),
+    ngram_matrix = ngram_matrix.astype(np.uint16)
+    ngram_df = pd.DataFrame.sparse.from_spmatrix(
+        ngram_matrix,
         columns=[f"ngram_{name}" for name in feature_names]
     )
 

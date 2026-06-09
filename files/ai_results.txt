@@ -1,0 +1,17 @@
+model  accuracy  precision_macro  recall_macro  f1_macro  specificity
+gemma3     0.766         0.827584      0.749582  0.745784     0.521552
+
+model  accuracy  precision_macro  recall_macro  f1_macro  specificity
+gemma3_few  0.790667         0.813048      0.799998  0.789576     0.929598
+
+model  accuracy  precision_macro  recall_macro  f1_macro  specificity
+claude_few  0.895333         0.895272      0.894161  0.894648     0.877874
+
+model  accuracy  precision_macro  recall_macro  f1_macro  specificity
+claude  0.704667         0.711016      0.709641  0.704571     0.778736
+
+model  accuracy  precision_macro  recall_macro  f1_macro  specificity
+llama3:2latest     0.686         0.703685      0.672639  0.667811     0.487069
+
+model  accuracy  precision_macro  recall_macro  f1_macro  specificity
+llama3:2latest_few  0.761333           0.8033      0.774179  0.757687     0.952586

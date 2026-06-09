@@ -61,7 +61,7 @@ def main():
     )
     args = parser.parse_args()
 
-    results = evaluate_gemma3(args.csv_path, model_name="gemma3", positive_label=args.positive_label)
+    results = evaluate_gemma3(args.csv_path, model_name="llama3:2latest", positive_label=args.positive_label)
     df = pd.DataFrame([results])
 
     print(df.to_string(index=False))
