@@ -13,7 +13,7 @@ models/__pycache__/
 !data_test_fold1(in).csv
 !data_test_fold2(in).csv
 *.pkl
-
+*.npz
 /resultados_beto
 /modelo_beto_final
 

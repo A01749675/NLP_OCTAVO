@@ -384,8 +384,16 @@ def train_and_plot(
                 "KNN does not provide direct feature importances or coefficients."
             )
 
-    # AUC/ROC plotting controlled separately
-    if AUCACTIVE:
+        auc_score = plot_roc_auc(
+            model=model,
+            X_test=X_test,
+            y_test=y_test,
+            title=f"ROC Curve - {model_name.upper()} with {target.upper()}"
+        )
+        results["auc"] = auc_score
+
+    # AUC/ROC plotting controlled separately when plots are disabled but AUCACTIVE is True
+    elif AUCACTIVE:
         auc_plot_path = resolve_output_path(
             f"auc_{model_name}_{target}.png"
         )
@@ -413,138 +421,27 @@ def run_experiments():
     """
 
     experiments = [
-        {
-            "target": "tfidf",
-            "model_name": "rf"
-        },
-        {
-            "target": "tfidf",
-            "model_name": "lr"
-        },
-        {
-            "target": "tfidf",
-            "model_name": "knn"
-        },
-        {
-            "target": "bigrams",
-            "model_name": "rf"
-        },
-        {
-            "target": "bigrams",
-            "model_name": "lr"
-        },
-        {
-            "target": "bigrams",
-            "model_name": "knn"
-        },
-        {
-            "target": "trigrams",
-            "model_name": "rf"
-        },
-        {
-            "target": "trigrams",
-            "model_name": "lr"
-        },
-        {
-            "target": "trigrams",
-            "model_name": "knn"
-        },
-        {
-            "target": "all",
-            "model_name": "rf"
-        },
-        {
-            "target": "all",
-            "model_name": "lr"
-        },
-        {
-            "target": "all",
-            "model_name": "knn"
-        },
-        {
-            "target": "word2vec",
-            "model_name": "rf"
-        },
-        {
-            "target": "word2vec",
-            "model_name": "lr"
-        },
-        {
-            "target": "word2vec",
-            "model_name": "knn"
-        },
-        {
-            "target": "tfidf_bigrams",
-            "model_name": "rf"
-        },
-        {
-            "target": "tfidf_bigrams",
-            "model_name": "lr"
-        },
-        {
-            "target": "tfidf_bigrams",
-            "model_name": "knn"
-        },
-        {
-            "target": "tfidf_trigrams",
-            "model_name": "rf"
-        },
-        {
-            "target": "tfidf_trigrams",
-            "model_name": "lr"
-        },
-        {
-            "target": "tfidf_trigrams",
-            "model_name": "knn"
-        },
-        {
-            "target":"beto",
-            "model_name":"knn"
-        },
-        {
-            "target":"beto",
-            "model_name":"rf"
-        },
-        {
-            "target":"beto",
-            "model_name":"lr"
-        },
-        {
-            "target":"beto_finetuned",
-            "model_name":"knn"
-        },
-        {
-            "target":"beto_finetuned",
-            "model_name":"rf"
-        },
-        {
-            "target":"beto_finetuned",
-            "model_name":"lr"
-        },
-        {
-            "target":"robertuito",
-            "model_name":"knn"
-        },
-        {
-            "target":"robertuito",
-            "model_name":"rf"
-        },
-        {
-            "target":"robertuito",
-            "model_name":"lr"
-        },
-        {
-            "target":"robertuito_finetuned",
-            "model_name":"knn"
-        },
-        {
-            "target":"robertuito_finetuned",
-            "model_name":"rf"
-        },
-        {
-            "target":"robertuito_finetuned",
-            "model_name":"lr"
-        }
+        {"target": "tfidf", "model_name": "rf"},
+        {"target": "tfidf", "model_name": "lr"},
+        {"target": "tfidf", "model_name": "knn"},
+        {"target": "bigrams", "model_name": "rf"},
+        {"target": "bigrams", "model_name": "lr"},
+        {"target": "bigrams", "model_name": "knn"},
+        {"target": "trigrams", "model_name": "rf"},
+        {"target": "trigrams", "model_name": "lr"},
+        {"target": "trigrams", "model_name": "knn"},
+        {"target": "all", "model_name": "rf"},
+        {"target": "all", "model_name": "lr"},
+        {"target": "all", "model_name": "knn"},
+        {"target": "word2vec", "model_name": "rf"},
+        {"target": "word2vec", "model_name": "lr"},
+        {"target": "word2vec", "model_name": "knn"},
+        {"target": "tfidf_bigrams", "model_name": "rf"},
+        {"target": "tfidf_bigrams", "model_name": "lr"},
+        {"target": "tfidf_bigrams", "model_name": "knn"},
+        {"target": "tfidf_trigrams", "model_name": "rf"},
+        {"target": "tfidf_trigrams", "model_name": "lr"},
+        {"target": "tfidf_trigrams", "model_name": "knn"}
     ]
 
     all_results = []
@@ -774,19 +671,19 @@ if __name__ == "__main__":
     clean_data()
     clean_data_2()
     # Run only one experiment
-    # train_and_plot(
-    #     input_file="data_train_cleaned.csv",
-    #     target="all",
-    #     model_name="rf",
-    #     random_state=42
-    # )
+    train_and_plot(
+        input_file="data_train_cleaned.csv",
+        target="tfidf_trigrams",
+        model_name="knn",
+        random_state=42
+    )
     # model, results = train_and_plot(
     #         input_file="files/data_train_cleaned2.csv",
     #         target='beto',
     #         model_name='knn',
     #         random_state=42
     #     )
-    results = run_experiments()
+    # results = run_experiments()
     # results = run_beto()
     # print(results)
     
@@ -797,6 +694,6 @@ if __name__ == "__main__":
     #     random_state=42
     # )
     # results = run_experiments()
-    print(results)
+    # print(results)
     # results_knn = test_knn_model()
     # print(results_knn)

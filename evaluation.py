@@ -6,15 +6,12 @@ from sklearn.metrics import ConfusionMatrixDisplay,confusion_matrix
 from sklearn.metrics import roc_curve, roc_auc_score
 from sklearn.ensemble import RandomForestClassifier
 
-SHOW_PLOTS = False
+SHOW_PLOTS = True
 """Global flag controlling whether plots are displayed."""
 
 
 def _maybe_show_plot():
-    if SHOW_PLOTS:
-        plt.show()
-    else:
-        plt.close("all")
+    plt.show()
 
 
 def evaluate_model(model, X_test, y_test):

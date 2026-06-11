@@ -474,17 +474,29 @@ def main():
     -------
     None
     """
-    input_file = "data_train(in).csv"
-    output_file = "llama_32_predictions_few.csv"
+    
+    files = ["data_test_fold1(in).csv", "data_test_fold2(in).csv"]
+    # output_files = "llama_32_predictions_few.csv"
+    for input_file in files:
+        for few_shot in [False, True]:
+            output_file = f"llama_32_predictions_few_{few_shot}.csv"
+            if input_file == "data_test_fold1(in).csv":
+                output_file = f"test_1_llama_32_predictions_few_fold1_{few_shot}.csv"
+            else:
+                output_file = f"test_2_llama_32_predictions_few_fold2_{few_shot}.csv"
+            
+            tweets_df = read_tweets(input_file)
+            results_df = classify_tweets(tweets_df, model="llama3.2:latest", few_shot=few_shot)
+            print(results_df.head())
+            save_results(results_df, output_file)
+    # tweets_df = read_tweets(input_file)
 
-    tweets_df = read_tweets(input_file)
+    # results_df = classify_tweets(tweets_df, model="llama3.2:latest", few_shot=True)
 
-    results_df = classify_tweets(tweets_df, model="llama3.2:latest", few_shot=True)
+    # print(results_df.head())
+    # save_results(results_df, output_file)
 
-    print(results_df.head())
-    save_results(results_df, output_file)
-
-    cm_df = calculate_confusion_matrix(output_file)
+    # cm_df = calculate_confusion_matrix(output_file)
 
 
 if __name__ == "__main__":
