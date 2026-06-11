@@ -22,7 +22,7 @@ def main():
 
     print("2. Cargando el Test Set ciego (100% de los datos)...")
     # Carga tu nuevo archivo de prueba directamente
-    df = pd.read_csv("files/data_test_fold2.csv", encoding="utf-8")
+    df = pd.read_csv("files/data_test_fold1(in).csv", encoding="utf-8")
 
     df = df.dropna(subset=["tweet_text", "class"])
     df["class_clean"] = df["class"].astype(str).str.strip().str.lower()
