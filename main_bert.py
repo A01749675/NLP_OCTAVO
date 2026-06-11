@@ -1,3 +1,32 @@
+"""Fine-tuning pipeline for BETO (BERT Spanish) on the tweet classification task.
+
+This script prepares the dataset, tokenizes tweets using the BETO tokenizer,
+builds a `BertForSequenceClassification` model, and fine-tunes it using the
+Hugging Face `Trainer` API. The script is intended to be runnable as a
+stand-alone process to produce a fine-tuned model saved under
+``./modelo_beto_final`` and a short metrics report written to
+``metricas_evaluacion_entrenamiento.txt``.
+
+Requirements and inputs
+------------------------
+- Python packages: transformers, torch, sklearn, pandas, numpy
+- Input CSV: ``files/data_train_cleaned2.csv`` containing at least
+    ``tweet_text_clean`` and ``class`` columns. Classes must be 'control'
+    and 'anorexia'.
+
+Outputs
+-------
+- Saved model and tokenizer under ``./modelo_beto_final``
+- Evaluation metrics written to ``metricas_evaluacion_entrenamiento.txt``
+
+Notes
+-----
+- The script tokenizes to ``max_length=128`` and uses a 70/30 train/val
+    split (stratified). It configures early stopping and saves the best
+    checkpoint by F1-score. The code assumes GPU if available but will
+    run on CPU as fallback.
+"""
+
 import torch
 import numpy as np
 import pandas as pd

@@ -17,6 +17,8 @@ Este README documenta los módulos principales, la arquitectura, cómo ejecutar 
 - `evaluation.py` — métricas (accuracy, precision/recall macro, especificidad), funciones gráficas (distribución de clases, matriz de confusión, curvas ROC, importancias/coeficientes) y utilidades de visualización.
 - `model_validation.py` — carga artefactos guardados (`.pkl`), alinea columnas de features, y valida modelos sobre conjuntos de test.
 - `ai_classifier.py` — flujo alternativo basado en prompts con Ollama (lectura de tweets, clasificación few-shot / chain-of-thought, cálculo de matriz de confusión para salidas del LLM).
+- `train_llm_cot.py` — fine-tuning de Llama 3.2 con Chain-of-Thought (CoT) y QLoRA para generar razonamientos intermedios antes de la clasificación final.
+- `cot_gen.py` — utilidades y generación de prompts/datos de Chain-of-Thought para el flujo LLM.
 - `main_bert.py` / `main_robertuito.py` — scripts para ajustar (fine-tune) BETO y RoBERTuito respectivamente.
 - `tests/` — suite `unittest` con pruebas unitarias para `paths`, `vectorizers`, `evaluation`, `main`, etc.
 
@@ -26,7 +28,10 @@ Este README documenta los módulos principales, la arquitectura, cómo ejecutar 
 2. Vectorización: `vectorizers.process_csv(input_file, target)` → genera archivos en `files/` (por ejemplo `data_train_tfidf.csv`, `data_train_hashing.npz`, `data_train_word2vec.csv`).
 3. Entrenamiento: `main.train_and_plot()` selecciona modelo (`select_model()`), entrena, guarda artefacto (`model_files/`), evalúa (`evaluation.py`) y genera gráficos.
 4. Validación: `model_validation.py` compara artefactos guardados contra datos de validación/producción.
-5. Alternativa LLM: `ai_classifier.py` para clasificación por prompts con Ollama.
+5. Alternativa LLM:
+   - `ai_classifier.py` para clasificación por prompts con Ollama.
+   - `train_llm_cot.py` para fine-tuning QLoRA de Llama 3.2 con Chain-of-Thought.
+   - `cot_gen.py` para utilidades de generación de prompts/datos CoT.
 
 ## Representaciones soportadas
 
@@ -76,6 +81,7 @@ Ejecutar la barrida KNN:
 
 ```python
 from main import test_knn_model
+
 test_knn_model(input_file="files/data_train_cleaned.csv")
 ```
 
@@ -88,16 +94,17 @@ python model_validation.py
 Clasificación por prompts (requiere Ollama):
 
 ```python
-from ai_classifier import read_tweets, classify_tweet, calculate_confusion_matrix
+from ai_classifier import read_tweets, classify_tweet, classify_tweet_few_shot, classify_chain_of_thought, calculate_confusion_matrix
 
 # Ejemplo: leer y clasificar
 ```
 
-Fine-tuning de transformadores (puede requerir GPU):
+Fine-tuning de transformadores y CoT (puede requerir GPU):
 
 ```bash
 python main_bert.py
 python main_robertuito.py
+python train_llm_cot.py
 ```
 
 ## Desarrollo y testing
@@ -117,6 +124,7 @@ python main_robertuito.py
 ## Notas operativas
 
 - `ai_classifier.py` requiere sitio local de Ollama si se usa ese backend.
+- `train_llm_cot.py` entrena un modelo Llama 3.2 en 4-bit con QLoRA y Chain-of-Thought. Necesita datos `files/data_train_cot.csv` con razonamiento previo (`reasoning`) y puede requerir GPU/memoria adicional.
 - Los scripts de fine-tune usan `transformers` y pueden requerir memoria/GPU; el código intenta detectar CUDA y caerá a CPU si no hay GPU disponible.
 - `vectorizers.word2vec_vectorize()` buscará `model_files/WORD2VEC.model`; si no existe, entrenará un Word2Vec local y lo guardará.
 

@@ -1,17 +1,56 @@
+"""Evaluation and plotting utilities for NLP_OCTAVO.
+
+This module provides helpers to compute common classification metrics
+and to render diagnostic plots used across the project (class
+distribution, confusion matrix, ROC curve, feature importances,
+etc.). The functions are deliberately lightweight and written to be
+unit-testable: plotting helpers call ``plt.show()`` via
+``_maybe_show_plot()`` so tests can mock ``matplotlib.pyplot.show``
+and inspect axes properties without opening windows.
+
+Typical usage:
+
+        from evaluation import evaluate_model, plot_confusion_matrix
+
+        y_pred, results = evaluate_model(model, X_test, y_test)
+        plot_confusion_matrix(y_test, y_pred)
+
+Notes:
+
+- Plots are drawn using Matplotlib. Tests in this repository set the
+    backend to a non-interactive backend (e.g. 'Agg') and mock
+    ``plt.show`` when asserting plot contents.
+- The module returns metric numbers (accuracy, precision/recall/f1
+    macro and specificity) as Python primitives to simplify assertions
+    in unit tests.
+"""
+
 import pandas as pd
 import matplotlib.pyplot as plt
 from pathlib import Path
 from sklearn import metrics
-from sklearn.metrics import ConfusionMatrixDisplay,confusion_matrix
+from sklearn.metrics import ConfusionMatrixDisplay, confusion_matrix
 from sklearn.metrics import roc_curve, roc_auc_score
 from sklearn.ensemble import RandomForestClassifier
 
 SHOW_PLOTS = True
-"""Global flag controlling whether plots are displayed."""
+"""Global flag (informational) indicating whether plots should be displayed.
+
+Tests in this project mock ``matplotlib.pyplot.show``; the helper
+``_maybe_show_plot()`` simply calls ``plt.show()`` so mocking behaves
+correctly. If you want to change the runtime behavior you can toggle
+this variable and adjust ``_maybe_show_plot`` accordingly.
+"""
 
 
 def _maybe_show_plot():
-    plt.show()
+        """Call Matplotlib's ``show()`` to display (or — in tests — be mocked).
+
+        The function is intentionally thin so tests can patch
+        ``matplotlib.pyplot.show`` and still exercise the plotting code.
+        """
+
+        plt.show()
 
 
 def evaluate_model(model, X_test, y_test):
