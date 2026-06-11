@@ -18,7 +18,7 @@ def get_model(random_state=42):
         A pipeline containing a scaler and LogisticRegression classifier.
     """
     return Pipeline([
-        ("scaler", StandardScaler()),
+        ("scaler", StandardScaler(with_mean=False)),
         ("classifier", LogisticRegression(
             random_state=random_state,
             max_iter=1000,

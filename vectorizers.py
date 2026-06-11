@@ -8,7 +8,8 @@ cleaned CSV files into model-ready feature files.
 
 import pandas as pd
 import numpy as np
-from sklearn.feature_extraction.text import TfidfVectorizer, CountVectorizer
+from sklearn.feature_extraction.text import TfidfVectorizer, CountVectorizer, HashingVectorizer
+from sklearn.feature_extraction.text import TfidfTransformer
 from nltk.tokenize import word_tokenize
 from gensim.models import Word2Vec
 import torch
@@ -17,6 +18,7 @@ from tqdm import tqdm
 from sklearn.decomposition import PCA
 from transformers import BertTokenizer, BertModel, AutoTokenizer, AutoModel
 import os
+from scipy.sparse import hstack
 
 from paths import resolve_input_path, resolve_output_path, resolve_model_path
 from sklearn.model_selection import train_test_split
@@ -85,6 +87,59 @@ def tfidf_vectorize(
 
     return tfidf_df
 
+
+# ---------------------------------------------------------
+# HASHING VECTORIZER (Feature Hashing)
+# ---------------------------------------------------------
+def hashing_vectorize(
+    texts,
+    tweet_ids,
+    classes=None,
+    output_file="data_train_hashing.npz",
+    n_features=2**16,
+    ngram_range=(1, 3),
+    alternate_sign=False
+):
+    """
+    Generates a fixed-size hashed TF-IDF representation using HashingVectorizer.
+
+    Saves a sparse `.npz` file with the TF-IDF matrix and a small metadata CSV
+    with `tweet_id` and `class` (if present). Returns the path to the `.npz` file.
+    """
+
+    output_file = resolve_output_path(output_file)
+
+    hv = HashingVectorizer(n_features=n_features, ngram_range=ngram_range, alternate_sign=alternate_sign, norm=None)
+    X_counts = hv.transform(texts)
+
+    tf = TfidfTransformer()
+    X_tfidf = tf.fit_transform(X_counts).astype(np.float32)
+
+    # Save sparse matrix and metadata
+    from scipy import sparse
+
+    # Ensure npz extension
+    if not str(output_file).lower().endswith('.npz'):
+        output_file = str(output_file) + '.npz'
+
+    sparse.save_npz(output_file, X_tfidf)
+
+    # Save metadata sidecar (tweet_id, class, tweet_text_clean)
+    meta_df = pd.DataFrame({
+        "tweet_text_clean": texts
+    })
+    if tweet_ids is not None:
+        meta_df.insert(0, "tweet_id", tweet_ids)
+    if classes is not None:
+        meta_df["class"] = classes
+
+    meta_file = output_file.replace('.npz', '.meta.csv')
+    meta_df.to_csv(meta_file, index=False, encoding='utf-8')
+
+    print(f"Hashing TF-IDF saved to {output_file} (meta: {meta_file})")
+    print(f"Hashing params: n_features={n_features}, ngram_range={ngram_range}")
+
+    return output_file
 
 # ---------------------------------------------------------
 # N-GRAM VECTORIZER
@@ -301,44 +356,58 @@ def _combine_tfidf_and_ngrams(
 
     output_file = resolve_output_path(output_file)
 
-    tfidf_df = tfidf_vectorize(
-        texts=texts,
-        tweet_ids=tweet_ids,
-        classes=classes,
-        output_file="temporary_tfidf.csv",
-        ngram_range=tfidf_ngram_range
+    # Create TF-IDF and n-gram feature matrices directly, then combine once.
+    tfidf = TfidfVectorizer(ngram_range=tfidf_ngram_range)
+    tfidf_matrix = tfidf.fit_transform(texts).astype(np.float32)
+    tfidf_feature_names = tfidf.get_feature_names_out()
+    tfidf_df = pd.DataFrame.sparse.from_spmatrix(
+        tfidf_matrix,
+        columns=[f"tfidf_{name}" for name in tfidf_feature_names]
     )
+    tfidf_df.insert(0, "tweet_text_clean", texts)
+    if tweet_ids is not None:
+        tfidf_df.insert(0, "tweet_id", tweet_ids)
+    if classes is not None:
+        tfidf_df.insert(0, "class", classes)
+    tfidf_df.to_csv(resolve_output_path("temporary_tfidf.csv"), index=False, encoding="utf-8")
+    print(f"TF-IDF data saved to {resolve_output_path('temporary_tfidf.csv')}")
+    print(f"Number of TF-IDF features: {len(tfidf_feature_names)}")
 
-    ngram_df = ngram_vectorize(
-        texts=texts,
-        tweet_ids=tweet_ids,
-        classes=classes,
-        output_file="temporary_ngrams.csv",
-        ngram_range=count_ngram_range
+    ngram = CountVectorizer(ngram_range=count_ngram_range)
+    ngram_matrix = ngram.fit_transform(texts).astype(np.uint16)
+    ngram_feature_names = ngram.get_feature_names_out()
+    ngram_df = pd.DataFrame.sparse.from_spmatrix(
+        ngram_matrix,
+        columns=[f"ngram_{name}" for name in ngram_feature_names]
     )
+    ngram_df.insert(0, "tweet_text_clean", texts)
+    if tweet_ids is not None:
+        ngram_df.insert(0, "tweet_id", tweet_ids)
+    if classes is not None:
+        ngram_df.insert(0, "class", classes)
+    ngram_df.to_csv(resolve_output_path("temporary_ngrams.csv"), index=False, encoding="utf-8")
+    print(f"N-gram data saved to {resolve_output_path('temporary_ngrams.csv')}")
+    print(f"Number of N-gram features: {len(ngram_feature_names)}")
 
-    combined_df = pd.concat(
-        [
-            tfidf_df.drop(columns=["tweet_text_clean", "tweet_id", "class"], errors="ignore"),
-            ngram_df.drop(columns=["tweet_text_clean", "tweet_id", "class"], errors="ignore")
-        ],
-        axis=1
+    combined_matrix = hstack([tfidf_matrix, ngram_matrix], format="csr")
+    combined_feature_names = [f"tfidf_{name}" for name in tfidf_feature_names] + [f"ngram_{name}" for name in ngram_feature_names]
+
+    combined_df = pd.DataFrame.sparse.from_spmatrix(
+        combined_matrix,
+        columns=combined_feature_names
     )
-
     combined_df.insert(0, "tweet_text_clean", texts)
-
     if tweet_ids is not None:
         combined_df.insert(0, "tweet_id", tweet_ids)
-
     if classes is not None:
         combined_df.insert(0, "class", classes)
 
     combined_df.to_csv(output_file, index=False, encoding="utf-8")
 
     print(f"{label} data saved to {output_file}")
-    print(f"Number of TF-IDF features: {tfidf_df.shape[1] - 3}")
-    print(f"Number of N-gram features: {ngram_df.shape[1] - 3}")
-    print(f"Total features: {combined_df.shape[1] - 3}")
+    print(f"Number of TF-IDF features: {len(tfidf_feature_names)}")
+    print(f"Number of N-gram features: {len(ngram_feature_names)}")
+    print(f"Total features: {len(combined_feature_names)}")
 
     return combined_df
 
@@ -721,7 +790,7 @@ def robertuito_finetuned_vectorize(texts, tweet_ids, classes=None, output_file="
 # ---------------------------------------------------------
 # PROCESS CSV
 # ---------------------------------------------------------
-def process_csv(input_file, target, only_train=False, test_size=0.2, random_state=42):
+def process_csv(input_file, target, only_train=False, test_size=0.2, random_state=42, validation=True, use_hashing=False):
     """
     Reads a cleaned CSV file and generates the selected vectorized file.
 
@@ -731,6 +800,18 @@ def process_csv(input_file, target, only_train=False, test_size=0.2, random_stat
     - "word2vec"
     - "all"
     - "beto"
+    - "beto_finetuned"
+    - "tfidf_bigrams"
+    - "tfidf_trigrams"
+    - "robertuito"
+        - "robertuito_finetuned"
+        
+        
+        
+        
+        
+        
+            
 
     Parameters
     ----------
@@ -779,24 +860,35 @@ def process_csv(input_file, target, only_train=False, test_size=0.2, random_stat
         case "tfidf":
             file_name = resolve_output_path("data_train_tfidf.csv")
             
-            if os.path.exists(file_name):
+            if not validation and os.path.exists(file_name):
                 print(f"Archivo TF-IDF ya existe en {file_name}. Cargando existente...")
                 return file_name
 
-            tfidf_vectorize(
-                texts=texts,
-                tweet_ids=tweet_ids,
-                classes=classes,
-                output_file=file_name,
-                ngram_range=(1, 1)
-            )
+            if use_hashing:
+                file_name = hashing_vectorize(
+                    texts=texts,
+                    tweet_ids=tweet_ids,
+                    classes=classes,
+                    output_file=resolve_output_path("data_train_hashing.npz"),
+                    n_features=2**16,
+                    ngram_range=(1, 1),
+                    alternate_sign=False
+                )
+            else:
+                tfidf_vectorize(
+                    texts=texts,
+                    tweet_ids=tweet_ids,
+                    classes=classes,
+                    output_file=file_name,
+                    ngram_range=(1, 1)
+                )
 
         case "ngrams" | "trigrams":
             file_name = resolve_output_path(
                 "data_train_ngrams.csv" if target == "ngrams" else "data_train_trigrams.csv"
             )
             
-            if os.path.exists(file_name):
+            if not validation and os.path.exists(file_name):
                 print(f"Archivo de n-grams ya existe en {file_name}. Cargando existente...")
                 return file_name
 
@@ -808,10 +900,26 @@ def process_csv(input_file, target, only_train=False, test_size=0.2, random_stat
                 ngram_range=(3, 3)
             )
 
+        case "hashing":
+            file_name = resolve_output_path("data_train_hashing.npz")
+            if not validation and os.path.exists(file_name):
+                print(f"Archivo hashed ya existe en {file_name}. Cargando existente...")
+                return file_name
+
+            file_name = hashing_vectorize(
+                texts=texts,
+                tweet_ids=tweet_ids,
+                classes=classes,
+                output_file=file_name,
+                n_features=2**16,
+                ngram_range=(1, 3),
+                alternate_sign=False
+            )
+
         case "bigrams":
             file_name = resolve_output_path("data_train_bigrams.csv")
             
-            if os.path.exists(file_name):
+            if not validation and os.path.exists(file_name):
                 print(f"Archivo de bigrams ya existe en {file_name}. Cargando existente...")
                 return file_name
 
@@ -851,7 +959,7 @@ def process_csv(input_file, target, only_train=False, test_size=0.2, random_stat
         case "tfidf_bigrams":
             file_name = resolve_output_path("data_train_tfidf_bigrams.csv")
             
-            if os.path.exists(file_name):
+            if not validation and os.path.exists(file_name):
                 print(f"Archivo combinado TF-IDF + bigrams ya existe en {file_name}. Cargando existente...")
                 return file_name
 
@@ -867,7 +975,7 @@ def process_csv(input_file, target, only_train=False, test_size=0.2, random_stat
         case "tfidf_trigrams":
             file_name = resolve_output_path("data_train_tfidf_trigrams.csv")
             
-            if os.path.exists(file_name):
+            if not validation and os.path.exists(file_name):
                 print(f"Archivo combinado TF-IDF + trigrams ya existe en {file_name}. Cargando existente...")
                 return file_name
 

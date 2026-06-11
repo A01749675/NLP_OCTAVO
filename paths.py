@@ -31,10 +31,11 @@ def ensure_files_dir():
     Returns
     -------
     pathlib.Path
-        The absolute path to the ``files`` directory.
+        The path to the ``files`` directory.
     """
-    FILES_DIR.mkdir(exist_ok=True)
-    return FILES_DIR
+    files_dir = Path.cwd() / FILES_DIR_NAME
+    files_dir.mkdir(exist_ok=True)
+    return files_dir
 
 
 def ensure_model_files_dir():
@@ -43,10 +44,11 @@ def ensure_model_files_dir():
     Returns
     -------
     pathlib.Path
-        The absolute path to the ``model_files`` directory.
+        The path to the ``model_files`` directory.
     """
-    MODEL_FILES_DIR.mkdir(exist_ok=True)
-    return MODEL_FILES_DIR
+    model_files_dir = Path.cwd() / MODEL_FILES_DIR_NAME
+    model_files_dir.mkdir(exist_ok=True)
+    return model_files_dir
 
 
 def resolve_input_path(path):
@@ -69,7 +71,7 @@ def resolve_input_path(path):
     path_obj = Path(path)
 
     if path_obj.is_absolute():
-        return str(path_obj)
+        return str(path_obj.resolve())
 
     explicit_path = path_obj.parent != Path(".")
     if explicit_path:
@@ -77,10 +79,10 @@ def resolve_input_path(path):
 
     files_candidate = Path(FILES_DIR_NAME) / path_obj
     if files_candidate.exists():
-        return str(files_candidate)
+        return str(files_candidate.resolve())
 
     if path_obj.exists():
-        return str(path_obj)
+        return str(path_obj.resolve())
 
     return str(files_candidate)
 

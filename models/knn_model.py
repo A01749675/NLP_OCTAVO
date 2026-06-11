@@ -18,7 +18,7 @@ def get_model(n_neighbors=15):
         A pipeline containing a scaler and KNeighborsClassifier.
     """
     return Pipeline([
-        ("scaler", StandardScaler()),
+        ("scaler", StandardScaler(with_mean=False)),
         ("classifier", KNeighborsClassifier(
             n_neighbors=n_neighbors,
             weights="distance",

@@ -25,14 +25,14 @@ from data_loader import get_data
 # ---------------------------------------------------------
 #
 
-PHASE = False
+PHASE = True
 
 if PHASE:
 
     INPUT_TEST_FILE = os.path.join("files", "data_test_fold1(in).csv")
     CLEANED_TEST_FILE = os.path.join("files", "cleaned_data_test_fold1(in).csv")
     CLEANED_TEST_FILE_2 = os.path.join("files", "cleaned_data_test_fold1(in)2.csv")
-    OUTPUT_RESULTS_FILE = resolve_output_path("model_evaluation_results2.csv")
+    OUTPUT_RESULTS_FILE = resolve_output_path("model_evaluation_results.csv")
 else:
     INPUT_TEST_FILE = os.path.join("files", "data_test_fold2(in).csv")
     CLEANED_TEST_FILE = os.path.join("files", "cleaned_data_test_fold2(in).csv")
@@ -419,12 +419,14 @@ def run_model_validation():
         if "beto" in model_file:
             vectorized_test_file = process_csv(
                 input_file=CLEANED_TEST_FILE_2,
-                target=target
+                target=target,
+                validation=True
             )
         else:
             vectorized_test_file = process_csv(
                 input_file=CLEANED_TEST_FILE,
-                target=target
+                target=target,
+                validation=True
             )
 
         X_test, y_test = get_data(vectorized_test_file)
