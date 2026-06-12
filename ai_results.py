@@ -8,7 +8,7 @@ including accuracy, precision, recall, f1-score, and specificity.
 import argparse
 import os
 import pandas as pd
-from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score, confusion_matrix
+from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score, confusion_matrix, roc_auc_score
 
 
 def load_gemma3_predictions(csv_path):
@@ -21,9 +21,10 @@ def load_gemma3_predictions(csv_path):
 
     Returns
     -------
-    tuple[pandas.Series, pandas.Series]
-        A tuple containing the true labels ``real_class`` and the predicted 
-        labels ``new_class`` as string series.
+    tuple[pandas.Series, pandas.Series, pandas.Series or None]
+        A tuple containing the true labels ``real_class``, the predicted 
+        labels ``new_class`` as string series, and optionally probability scores 
+        if available in the CSV.
 
     Raises
     ------
@@ -40,7 +41,16 @@ def load_gemma3_predictions(csv_path):
             f"El archivo {csv_path} debe contener las columnas {expected}. "
             f"Columnas actuales: {list(df.columns)}"
         )
-    return df["real_class"].astype(str), df["new_class"].astype(str)
+    
+    # Try to load probability scores if available
+    probs = None
+    possible_prob_cols = ['probability', 'score', 'confidence', 'prob']
+    for col in possible_prob_cols:
+        if col in df.columns:
+            probs = df[col]
+            break
+    
+    return df["real_class"].astype(str), df["new_class"].astype(str), probs
 
 
 def compute_specificity(y_true, y_pred, positive_label=None):
@@ -85,7 +95,7 @@ def compute_specificity(y_true, y_pred, positive_label=None):
 
 
 def evaluate_gemma3(csv_path, model_name="gemma3", positive_label="anorexia"):
-    """Evaluate predictions using accuracy, precision, recall, f1, and specificity.
+    """Evaluate predictions using accuracy, precision, recall, f1, specificity, and AUC.
 
     Parameters
     ----------
@@ -102,7 +112,7 @@ def evaluate_gemma3(csv_path, model_name="gemma3", positive_label="anorexia"):
     dict
         A dictionary containing the model name and the computed evaluation metrics.
     """
-    y_true, y_pred = load_gemma3_predictions(csv_path)
+    y_true, y_pred, y_proba = load_gemma3_predictions(csv_path)
 
     # Compute aggregate metrics using macro averaging for multiclass support (if applicable)
     results = {
@@ -113,6 +123,13 @@ def evaluate_gemma3(csv_path, model_name="gemma3", positive_label="anorexia"):
         "f1_macro": f1_score(y_true, y_pred, average="macro", zero_division=0),
         "specificity": compute_specificity(y_true, y_pred, positive_label=positive_label),
     }
+    
+    # Calculate AUC if probability scores are available
+    if y_proba is not None:
+        # Convert labels to binary (1 for positive_label, 0 otherwise)
+        y_true_binary = (y_true == positive_label).astype(int)
+        results["auc"] = roc_auc_score(y_true_binary, y_proba)
+        print(f"AUC calculado para {model_name}: {results['auc']:.4f}")
 
     return results
 
@@ -141,6 +158,25 @@ def main():
 
     print(df.to_string(index=False))
 
+def check_files():
+    
+    files_to_check = ['test_1_llama_32_predictions_few_fold1_False.csv', 
+                      'test_1_llama_32_predictions_few_fold1_True.csv', 
+                      'test_2_llama_32_predictions_few_fold2_False.csv', 
+                      'test_2_llama_32_predictions_few_fold2_True.csv']
+    for file in files_to_check:
+        file_path = os.path.join("files", file)
+        if not os.path.exists(file_path):
+            print(f"Archivo no encontrado: {file_path}")
+            continue
+        
+        print(f"Archivo encontrado: {file_path}")
+        model_name = os.path.splitext(file)[0]
+        results = evaluate_gemma3(file_path, model_name=model_name, positive_label="anorexia")
+        df = pd.DataFrame([results])
+        print(df.to_string(index=False))
 
 if __name__ == "__main__":
-    main()
+    # main()
+    print("Verificando archivos y evaluando métricas...")
+    check_files()
