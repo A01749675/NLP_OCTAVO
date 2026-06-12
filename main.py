@@ -671,12 +671,12 @@ if __name__ == "__main__":
     clean_data()
     clean_data_2()
     # Run only one experiment
-    train_and_plot(
-        input_file="data_train_cleaned.csv",
-        target="tfidf_trigrams",
-        model_name="knn",
-        random_state=42
-    )
+    # train_and_plot(
+    #     input_file="data_train_cleaned.csv",
+    #     target="tfidf_trigrams",
+    #     model_name="knn",
+    #     random_state=42
+    # )
     # model, results = train_and_plot(
     #         input_file="files/data_train_cleaned2.csv",
     #         target='beto',
@@ -684,8 +684,8 @@ if __name__ == "__main__":
     #         random_state=42
     #     )
     # results = run_experiments()
-    # results = run_beto()
-    # print(results)
+    results = run_beto()
+    print(results)
     
     # model, results = train_and_plot(
     #     input_file="files/data_train_cleaned2.csv",

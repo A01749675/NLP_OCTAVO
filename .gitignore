@@ -6,7 +6,7 @@ models/__pycache__/
 # Ignore all CSV files
 *.csv
 # Ignore all PNG files
-*.png
+# *.png
 # But allow this specific CSV
 !data_train.csv
 !data_train(in).csv
